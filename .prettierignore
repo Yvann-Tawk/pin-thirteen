@@ -1,0 +1,5 @@
+node_modules
+dist
+pnpm-lock.yaml
+packages/design-system/src/paper.css
+apps/web/src/art/generated.ts
