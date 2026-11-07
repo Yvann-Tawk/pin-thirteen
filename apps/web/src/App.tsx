@@ -1,5 +1,12 @@
 import { articleFor, explainPin, FINDING_ARTICLES, searchArticles } from '@pin-thirteen/knowledge';
-import { evaluate, lessonPassed, LESSONS } from '@pin-thirteen/learning';
+import {
+  CHALLENGES,
+  earnedBadges,
+  evaluate,
+  findLesson,
+  lessonPassed,
+  LESSONS,
+} from '@pin-thirteen/learning';
 import { registry, type ComponentDefinition } from '@pin-thirteen/registry';
 import { validate } from '@pin-thirteen/validation';
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
@@ -17,6 +24,8 @@ function SettingsPage() {
   const engine = useApp((s) => s.engine);
   const ready = useApp((s) => s.toolchainReady);
   const setEngine = useApp((s) => s.setEngine);
+  const showBadges = useApp((s) => s.showBadges);
+  const setShowBadges = useApp((s) => s.setShowBadges);
   return (
     <div className="prefs">
       <fieldset className="pref engine">
@@ -43,6 +52,15 @@ function SettingsPage() {
         </label>
         <p>With the AVR engine, tone, Servo and pulseIn parts are not connected yet.</p>
       </fieldset>
+      <div className="pref">
+        <label htmlFor="show-badges">Show badges in the Academy</label>
+        <input
+          id="show-badges"
+          type="checkbox"
+          checked={showBadges}
+          onChange={(e) => setShowBadges(e.target.checked)}
+        />
+      </div>
     </div>
   );
 }
@@ -50,6 +68,8 @@ function SettingsPage() {
 function Academy() {
   const completed = useApp((s) => s.completed);
   const startLesson = useApp((s) => s.startLesson);
+  const showBadges = useApp((s) => s.showBadges);
+  const badges = earnedBadges(completed);
   return (
     <div className="page-inner">
       <h2 className="page-title">Academy</h2>
@@ -70,6 +90,30 @@ function Academy() {
           </li>
         ))}
       </ol>
+      <h2 className="page-title challenges-title">Challenges</h2>
+      <ol className="lessons">
+        {CHALLENGES.map((l) => (
+          <li key={l.id}>
+            <button
+              className="lesson-card"
+              data-done={completed.includes(l.id)}
+              onClick={() => startLesson(l.id)}
+            >
+              <b>{l.title}</b>
+              <span>{l.summary}</span>
+              {completed.includes(l.id) && <em>Complete</em>}
+            </button>
+          </li>
+        ))}
+      </ol>
+      {showBadges && (
+        <ul className="badges" aria-label="Badges">
+          {badges.length === 0 && <li>No badges yet.</li>}
+          {badges.map((b) => (
+            <li key={b.id}>{b.title}</li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -195,7 +239,7 @@ function Library() {
 
 function LessonPanel() {
   const s = useApp();
-  const lesson = LESSONS.find((l) => l.id === s.lessonId);
+  const lesson = findLesson(s.lessonId ?? '');
   if (!lesson) return null;
   const step = lesson.steps[s.lessonStep]!;
   const ctx = { doc: s.history.present, sketch: s.sketch, observed: s.observed, registry };
@@ -205,7 +249,8 @@ function LessonPanel() {
   return (
     <section className="lesson" aria-label="Lesson">
       <p className="lesson-count">
-        Lesson {lesson.number} · Step {s.lessonStep + 1} of 8
+        {lesson.number > 100 ? 'Challenge' : `Lesson ${lesson.number}`} · Step {s.lessonStep + 1} of
+        8
       </p>
       <h2>{step.title}</h2>
       <div className="lesson-body">

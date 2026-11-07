@@ -112,3 +112,17 @@ test('a lesson from the new hardware runs: servo moves through the shim', async 
   await expect(page.locator('[data-readout="150°"]')).toBeVisible({ timeout: 3000 });
   await page.getByRole('button', { name: 'Stop' }).click();
 });
+
+test('badges stay hidden unless turned on, and challenges open in the lesson panel', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /Aca/ }).click();
+  await expect(page.getByLabel('Badges', { exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: /Settings/ }).click();
+  await page.getByLabel('Show badges in the Academy').check();
+  await page.getByRole('button', { name: /Aca/ }).click();
+  await expect(page.getByLabel('Badges', { exact: true })).toContainText('No badges yet');
+  await page.getByRole('button', { name: /Morse code/ }).click();
+  await expect(page.getByLabel('Lesson')).toContainText('The challenge');
+});

@@ -3,7 +3,11 @@ import { registry } from '@pin-thirteen/registry';
 import { compile } from '@pin-thirteen/sim-edu';
 import { describe, expect, it } from 'vitest';
 import {
+  BADGES,
+  CHALLENGES,
+  earnedBadges,
   evaluate,
+  findLesson,
   LESSONS,
   lessonPassed,
   noObservations,
@@ -47,7 +51,7 @@ const ctx = (doc: CircuitDocument, sketch: string, observed: Partial<Observed> =
 });
 const lesson = (id: string) => LESSONS.find((l) => l.id === id)!;
 
-describe.each(LESSONS.map((l) => [l.id, l] as const))('%s', (_, l) => {
+describe.each([...LESSONS, ...CHALLENGES].map((l) => [l.id, l] as const))('%s', (_, l) => {
   it('has all eight steps in order', () =>
     expect(l.steps.map((s) => s.kind)).toEqual([...STEP_KINDS]));
   it('uses only registered parts', () => {
@@ -110,5 +114,21 @@ describe('lesson verification', () => {
     expect(
       evaluate({ type: 'sim.serialPrinted', label: '' }, ctx(led('D13'), '', { serial: 'hi' })),
     ).toBe(true);
+  });
+});
+
+describe('progression', () => {
+  it('badges refer only to real lessons', () => {
+    for (const b of BADGES) for (const id of b.requires) expect(findLesson(id), id).toBeDefined();
+  });
+  it('earns a badge only when every requirement is complete', () => {
+    expect(earnedBadges(['first-led'])).toEqual([]);
+    expect(earnedBadges(['first-led', 'blink']).map((b) => b.id)).toEqual(['first-light']);
+  });
+  it('a challenge cannot pass without its real result', () => {
+    const c = CHALLENGES[0]!;
+    expect(lessonPassed(c, ctx(led('D12'), '', { ledTransitions: 8 }))).toBe(true);
+    expect(lessonPassed(c, ctx(led('D12'), '', { ledTransitions: 2 }))).toBe(false);
+    expect(lessonPassed(c, ctx(led('D13'), '', { ledTransitions: 8 }))).toBe(false);
   });
 });

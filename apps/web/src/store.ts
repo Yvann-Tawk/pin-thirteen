@@ -25,7 +25,12 @@ import {
   type Project,
 } from '@pin-thirteen/circuit-core';
 import { explainPin } from '@pin-thirteen/knowledge';
-import { LESSONS, noObservations, type LearningEvent, type Observed } from '@pin-thirteen/learning';
+import {
+  findLesson,
+  noObservations,
+  type LearningEvent,
+  type Observed,
+} from '@pin-thirteen/learning';
 import { registry, seatOnBoard } from '@pin-thirteen/registry';
 import type { ComponentInput, SimulationState } from '@pin-thirteen/sim-core';
 import { compile, type Diagnostic } from '@pin-thirteen/sim-edu';
@@ -87,6 +92,8 @@ interface AppState {
   serial: string;
   turned: Record<string, number>;
   channels: Record<string, number>;
+  showBadges: boolean;
+  setShowBadges(on: boolean): void;
   engine: 'educational' | 'avr';
   toolchainReady: boolean;
   setEngine(engine: AppState['engine']): void;
@@ -211,6 +218,8 @@ export const useApp = create<AppState>((set, get) => {
     serial: '',
     turned: {},
     channels: {},
+    showBadges: false,
+    setShowBadges: (showBadges) => set({ showBadges }),
     engine: 'educational',
     toolchainReady: false,
     setEngine: (engine) => set({ engine }),
@@ -241,7 +250,7 @@ export const useApp = create<AppState>((set, get) => {
     closeLesson: () => set({ lessonId: null }),
     togglePanel: () => set((s) => ({ showParts: !s.showParts })),
     loadLessonSketch() {
-      const sketch = LESSONS.find((l) => l.id === get().lessonId)?.sketch;
+      const sketch = findLesson(get().lessonId ?? '')?.sketch;
       if (sketch) set({ sketch, problem: null, status: 'Sketch loaded into the Code Lab.' });
     },
     completeLesson() {

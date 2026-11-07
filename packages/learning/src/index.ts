@@ -3,7 +3,10 @@ import type { ComponentDefinition } from '@pin-thirteen/registry';
 import { CircuitModel, type Inputs, type PinDrive } from '@pin-thirteen/sim-core';
 import { validate } from '@pin-thirteen/validation';
 
+export { BADGES, CHALLENGES } from '../../../content/lessons/challenges';
 export { LESSONS } from '../../../content/lessons/index';
+import { BADGES, CHALLENGES } from '../../../content/lessons/challenges';
+import { LESSONS } from '../../../content/lessons/index';
 
 export const STEP_KINDS = [
   'introduction',
@@ -128,3 +131,9 @@ export const lessonPassed = (lesson: Lesson, ctx: CheckContext) =>
 /** A stable stream, so achievements could subscribe later without touching any lesson. */
 export type LearningEvent =
   { type: 'lesson.started'; lesson: string } | { type: 'lesson.completed'; lesson: string };
+
+export const findLesson = (id: string) => [...LESSONS, ...CHALLENGES].find((l) => l.id === id);
+
+/** Badges are derived from completed lessons, so nothing else needs storing or migrating. */
+export const earnedBadges = (completed: string[]) =>
+  BADGES.filter((b) => b.requires.every((id) => completed.includes(id)));

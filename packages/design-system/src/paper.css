@@ -304,6 +304,9 @@ ol.code li.now::after { content: ""; position: absolute; left: 64px; top: 7px; w
 }
 
 /* ---------- APP ADDITIONS ---------- */
+.challenges-title { margin-top: 26px; }
+.badges { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0 0; padding: 0; list-style: none; font: 400 14px var(--display); }
+.badges li { padding: 8px 12px; background: var(--palette-1); border: var(--line-2) solid var(--ink); box-shadow: 3px 3px 0 var(--ink); transform: rotate(-1deg); }
 .pref.engine { display: block; border: 0; font: 500 14px/1.3 var(--ui); }
 .pref.engine legend { font: 800 15px var(--ui); background: var(--paper); padding: 2px 8px; border: var(--line-2) solid var(--ink); }
 .pref.engine label { display: block; margin: 10px 0; }
