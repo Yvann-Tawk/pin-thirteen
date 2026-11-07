@@ -7,6 +7,7 @@ export default tseslint.config(
       '**/node_modules/**',
       'apps/web/src/art/generated.ts',
       'tests/conformance/tools/**',
+      'apps/web/public/toolchain/**',
     ],
   },
   ...tseslint.configs.recommended,

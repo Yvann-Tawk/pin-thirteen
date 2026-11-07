@@ -79,3 +79,9 @@ test('zooms and fits', async ({ page }) => {
   await page.getByRole('button', { name: 'Fit' }).click();
   await expect(page.locator('.world')).toHaveAttribute('transform', /scale\(1\)/);
 });
+
+test('starting a wire explains the pin', async ({ page }) => {
+  await page.goto('/');
+  await clickWorld(page, UNO.x + 193, UNO.y + 16);
+  await expect(page.getByText('Pin 13 is digital')).toBeVisible();
+});

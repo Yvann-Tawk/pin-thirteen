@@ -401,12 +401,12 @@ export const useApp = create<AppState>((set, get) => {
     },
     setParam: (id, key, value) => run(setParam(id, key, value)),
     pinClicked(endpoint) {
-      const { draft, connect } = get();
+      const { draft, connect, history } = get();
       if (!draft) {
-        set({
-          draft: endpoint,
-          status: 'Wire started. Click another pin, or press Esc to cancel.',
-        });
+        const type = history.present.components.find((c) => c.id === endpoint.instance)?.type;
+        const pin = type ? registry.get(type)?.pins.find((p) => p.id === endpoint.pin) : undefined;
+        const tip = pin ? `${explainPin(pin)} ` : '';
+        set({ draft: endpoint, status: `${tip}Click another pin, or press Esc to cancel.` });
         return;
       }
       if (connect(draft, endpoint)) set({ draft: null });

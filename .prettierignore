@@ -5,3 +5,4 @@ packages/design-system/src/paper.css
 apps/web/src/art/generated.ts
 apps/web/public/toolchain
 tools/toolchain
+COMPONENTS.md
