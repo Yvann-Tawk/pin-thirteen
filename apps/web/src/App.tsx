@@ -13,6 +13,40 @@ import { useApp } from './store';
 
 type View = 'play' | 'kit' | 'exp' | 'code' | 'set';
 
+function SettingsPage() {
+  const engine = useApp((s) => s.engine);
+  const ready = useApp((s) => s.toolchainReady);
+  const setEngine = useApp((s) => s.setEngine);
+  return (
+    <div className="prefs">
+      <fieldset className="pref engine">
+        <legend>Simulation engine</legend>
+        <label>
+          <input
+            type="radio"
+            name="engine"
+            checked={engine === 'educational'}
+            onChange={() => setEngine('educational')}
+          />
+          Educational: instant, with clear errors and a supported subset of Arduino.
+        </label>
+        <label>
+          <input
+            type="radio"
+            name="engine"
+            disabled={!ready}
+            checked={engine === 'avr'}
+            onChange={() => setEngine('avr')}
+          />
+          AVR: runs real compiled code on an emulated chip.
+          {!ready && ' Needs the optional toolchain, which is not installed.'}
+        </label>
+        <p>With the AVR engine, tone, Servo and pulseIn parts are not connected yet.</p>
+      </fieldset>
+    </div>
+  );
+}
+
 function Academy() {
   const completed = useApp((s) => s.completed);
   const startLesson = useApp((s) => s.startLesson);
@@ -564,9 +598,7 @@ export function App() {
         <section className="page" aria-label="Settings" hidden={page !== 'set'}>
           <div className="page-inner" style={{ background: 'var(--grain), var(--palette-5)' }}>
             <h2 className="page-title">Settings</h2>
-            <p className="pane-note" style={{ paddingLeft: 0 }}>
-              Nothing to set yet.
-            </p>
+            <SettingsPage />
           </div>
         </section>
       </main>

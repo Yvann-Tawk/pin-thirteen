@@ -25,6 +25,7 @@
     "@pin-thirteen/knowledge": "workspace:*",
     "@pin-thirteen/learning": "workspace:*",
     "@pin-thirteen/registry": "workspace:^",
+    "@pin-thirteen/sim-avr": "workspace:*",
     "@pin-thirteen/sim-core": "workspace:*",
     "@pin-thirteen/sim-edu": "workspace:*",
     "@pin-thirteen/validation": "workspace:*",

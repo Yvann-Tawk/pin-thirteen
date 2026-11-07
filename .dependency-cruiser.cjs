@@ -6,7 +6,7 @@ module.exports = {
       severity: 'error',
       from: { path: '^packages/circuit-core' },
       to: {
-        path: '^(apps|packages/(registry|design-system|sim-core|sim-edu|validation|learning|knowledge))|node_modules/(react|idb|zustand)',
+        path: '^(apps|packages/(registry|design-system|sim-core|sim-edu|sim-avr|validation|learning|knowledge))|node_modules/(react|idb|zustand)',
       },
     },
     {

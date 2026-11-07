@@ -10,6 +10,7 @@ packages/knowledge       Articles, search, rule-based help
 content/                 Lessons and articles (CC BY 4.0)
 packages/validation      Circuit checks: error, hazard, limitation
 packages/sim-edu         Sketch compiler, bytecode VM, educational engine
+packages/sim-avr         avr8js engine, optional compiler driver
 packages/sim-core        Engine contracts and the circuit solver
 packages/registry        Component definitions, no drawing or UI code
 packages/circuit-core    Pure document, commands, history, project files
@@ -28,3 +29,5 @@ packages/circuit-core    Pure document, commands, history, project files
 - **Lessons are data.** Verification is a list of typed checks evaluated against the circuit, the sketch, and what the simulator observed.
 - **Learning events** (`onLearningEvent`) leave room for later features without changing lessons.
 - **Help is rule-based.** `explainPin` and the article links are where an optional AI provider could attach later.
+- **Two engines, one circuit model.** `AvrEngine` runs compiled code and uses the same `CircuitModel`. External parts on it are currently limited to LEDs, switches and analog inputs.
+- **The GPL compiler stays separate.** It loads at runtime from `public/toolchain` only if someone installed it.

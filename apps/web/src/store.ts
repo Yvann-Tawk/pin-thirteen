@@ -87,6 +87,9 @@ interface AppState {
   serial: string;
   turned: Record<string, number>;
   channels: Record<string, number>;
+  engine: 'educational' | 'avr';
+  toolchainReady: boolean;
+  setEngine(engine: AppState['engine']): void;
   setChannel(id: string, channel: string, value: number): void;
   chapter: 'play' | 'kit' | 'exp' | 'code' | 'set';
   article: string | null;
@@ -208,6 +211,9 @@ export const useApp = create<AppState>((set, get) => {
     serial: '',
     turned: {},
     channels: {},
+    engine: 'educational',
+    toolchainReady: false,
+    setEngine: (engine) => set({ engine }),
     setChannel(instance, channel, value) {
       set((s) => ({ channels: { ...s.channels, [`${instance}:${channel}`]: value } }));
       post({ type: 'input', input: { instance, kind: 'channel', channel, value } });
@@ -251,9 +257,9 @@ export const useApp = create<AppState>((set, get) => {
     setStatus: (status) => set({ status }),
     setSketch: (sketch) => set({ sketch, problem: null }),
     run() {
-      const { sketch, history, turned, channels } = get();
-      const result = compile(sketch);
-      if (!result.ok) {
+      const { sketch, history, turned, channels, engine } = get();
+      const result = engine === 'educational' ? compile(sketch) : null;
+      if (result && !result.ok) {
         const problem = result.diagnostics[0] ?? null;
         set({ problem, status: problem ? `Line ${problem.line}: ${problem.message}` : '' });
         return;
@@ -261,6 +267,20 @@ export const useApp = create<AppState>((set, get) => {
       worker?.terminate();
       worker = new Worker(new URL('./sim.worker.ts', import.meta.url), { type: 'module' });
       worker.onmessage = ({ data }: MessageEvent<WorkerResponse>) => {
+        if (data.type === 'compile-error') {
+          get().stop();
+          set({
+            problem: { line: data.line, column: 1, message: data.message, kind: 'syntax' },
+            status: `Line ${data.line}: ${data.message}`,
+          });
+          return;
+        }
+        if (data.type === 'compiled') {
+          set({
+            status: engine === 'avr' ? `Compiled in ${data.milliseconds} ms. Running.` : 'Running.',
+          });
+          return;
+        }
         updateTone(data.state);
         set((s) => {
           const levels = Object.values(data.state.components).map((c) => c.brightness);
@@ -297,14 +317,15 @@ export const useApp = create<AppState>((set, get) => {
         const [instance, channel] = key.split(':') as [string, string];
         inputs.push({ instance, kind: 'channel', channel, value });
       }
-      post({ type: 'start', circuit: history.present, sketch, inputs });
+      const toolchain = new URL('toolchain/', document.baseURI).href;
+      post({ type: 'start', engine, toolchain, circuit: history.present, sketch, inputs });
       wasOn = false;
       seenLevels = new Set();
       set({
         running: true,
         problem: null,
         serial: '',
-        status: 'Running.',
+        status: engine === 'avr' ? 'Compiling.' : 'Running.',
         observed: noObservations(),
       });
     },
@@ -324,6 +345,12 @@ export const useApp = create<AppState>((set, get) => {
     sendSerial: (text) => post({ type: 'serial', text }),
     async init() {
       try {
+        fetch('toolchain/bundle.json', { method: 'HEAD' })
+          .then((r) => {
+            const json = r.headers.get('content-type')?.includes('json');
+            if (r.ok && json) set({ toolchainReady: true });
+          })
+          .catch(() => undefined);
         set({ completed: await loadCompleted() });
         const saved = await loadLatestProject();
         if (!saved) return;

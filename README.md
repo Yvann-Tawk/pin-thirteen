@@ -20,6 +20,10 @@ pnpm lint && pnpm typecheck && pnpm boundaries && pnpm test
 pnpm build && pnpm e2e
 ```
 
+## Optional AVR engine
+
+The app runs without it. See [tools/toolchain](tools/toolchain/README.md).
+
 ## Licensing
 
 See [LICENSING.md](LICENSING.md). Code is Apache-2.0; illustrations are reserved.
