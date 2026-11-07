@@ -1,0 +1,19 @@
+{
+  "name": "@pin-thirteen/learning",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@pin-thirteen/circuit-core": "workspace:*",
+    "@pin-thirteen/registry": "workspace:*",
+    "@pin-thirteen/sim-core": "workspace:*",
+    "@pin-thirteen/validation": "workspace:*"
+  },
+  "devDependencies": {
+    "@pin-thirteen/sim-edu": "workspace:*"
+  }
+}

@@ -4,12 +4,28 @@ import { openDB } from 'idb';
 const DB_NAME = 'pin-thirteen';
 const STORE = 'projects';
 
+const PROGRESS = 'progress';
+
 const database = () =>
-  openDB(DB_NAME, 1, {
-    upgrade(db) {
-      db.createObjectStore(STORE, { keyPath: 'id' });
+  openDB(DB_NAME, 2, {
+    upgrade(db, oldVersion) {
+      if (oldVersion < 1) db.createObjectStore(STORE, { keyPath: 'id' });
+      if (oldVersion < 2) db.createObjectStore(PROGRESS);
     },
   });
+
+export async function saveCompleted(lessons: string[]): Promise<void> {
+  const db = await database();
+  await db.put(PROGRESS, lessons, 'completed');
+  db.close();
+}
+
+export async function loadCompleted(): Promise<string[]> {
+  const db = await database();
+  const value = (await db.get(PROGRESS, 'completed')) as string[] | undefined;
+  db.close();
+  return value ?? [];
+}
 
 export async function saveProject(project: Project): Promise<void> {
   const db = await database();

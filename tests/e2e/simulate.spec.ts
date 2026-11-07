@@ -37,7 +37,7 @@ const setSketch = async (page: Page, text: string) => {
 
 test('blinks only because of the circuit and the code', async ({ page }) => {
   await buildLed(page);
-  await page.getByRole('button', { name: 'Run' }).click();
+  await page.getByRole('button', { name: 'Run', exact: true }).click();
   await expect(led(page)).toHaveAttribute('data-lit', 'true');
   await expect(led(page)).toHaveAttribute('data-lit', 'false', { timeout: 2500 });
   await expect(led(page)).toHaveAttribute('data-lit', 'true', { timeout: 2500 });
@@ -48,14 +48,14 @@ test('blinks only because of the circuit and the code', async ({ page }) => {
   await page.waitForTimeout(2300);
   await expect(led(page)).toHaveAttribute('data-lit', 'false');
   await page.getByRole('button', { name: 'Stop' }).click();
-  await expect(page.getByRole('button', { name: 'Run' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Run', exact: true })).toBeEnabled();
 });
 
 test('a wrong circuit stays dark and says why', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: /LED-5MM/ }).click();
   await expect(page.locator('[data-finding="disconnected"]')).toBeVisible();
-  await page.getByRole('button', { name: 'Run' }).click();
+  await page.getByRole('button', { name: 'Run', exact: true }).click();
   await page.waitForTimeout(600);
   await expect(led(page)).toHaveAttribute('data-lit', 'false');
 });
@@ -63,17 +63,17 @@ test('a wrong circuit stays dark and says why', async ({ page }) => {
 test('an endless loop cannot freeze the page, and Stop works', async ({ page }) => {
   await page.goto('/');
   await setSketch(page, 'void setup() { while (1) { } } void loop() { }');
-  await page.getByRole('button', { name: 'Run' }).click();
+  await page.getByRole('button', { name: 'Run', exact: true }).click();
   await page.waitForTimeout(500);
-  await page.getByRole('button', { name: 'Compo' }).click();
+  await page.getByRole('button', { name: /Lib/ }).click();
   await page.getByRole('button', { name: 'Stop' }).click();
-  await expect(page.getByRole('button', { name: 'Run' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Run', exact: true })).toBeEnabled();
 });
 
 test('unsupported code gets a clear message with its line', async ({ page }) => {
   await page.goto('/');
   await setSketch(page, 'void setup() {\n  int *p;\n}\nvoid loop() { }');
-  await page.getByRole('button', { name: 'Run' }).click();
+  await page.getByRole('button', { name: 'Run', exact: true }).click();
   await expect(page.locator('.findings').getByText('Line 2')).toBeVisible();
   await expect(page.locator('.findings').getByText('Pointers need the AVR engine')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Stop' })).toBeDisabled();
@@ -86,7 +86,7 @@ test('prints a potentiometer reading to the Serial Monitor', async ({ page }) =>
   await wire(page, 'potentiometer', 'b', /UNO/, 'GND_1');
   await wire(page, 'potentiometer', 'wiper', /UNO/, 'A0');
   await page.getByLabel('Example').selectOption('Read a potentiometer (A0)');
-  await page.getByRole('button', { name: 'Run' }).click();
+  await page.getByRole('button', { name: 'Run', exact: true }).click();
   await page.getByRole('tab', { name: 'Serial Monitor' }).click();
   await expect(page.getByTestId('serial')).toContainText('512');
 });

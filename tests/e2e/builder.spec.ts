@@ -66,7 +66,7 @@ test('builds a full LED circuit by keyboard and survives reload', async ({ page 
   await page.getByLabel('To pin').fill('a6');
   await page.getByRole('button', { name: 'Add wire' }).click();
   await expect(page.getByText('That pin name was not found', { exact: false })).toBeVisible();
-  await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByText('Saved in this browser.')).toBeVisible();
   await page.reload();
   await expect(page.locator('[data-wire]')).toHaveCount(1);

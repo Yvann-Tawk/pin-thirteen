@@ -24,12 +24,14 @@ import {
   type ComponentTypeId,
   type Project,
 } from '@pin-thirteen/circuit-core';
+import { explainPin } from '@pin-thirteen/knowledge';
+import { LESSONS, noObservations, type LearningEvent, type Observed } from '@pin-thirteen/learning';
 import { registry, seatOnBoard } from '@pin-thirteen/registry';
 import type { ComponentInput, SimulationState } from '@pin-thirteen/sim-core';
 import { compile, type Diagnostic } from '@pin-thirteen/sim-edu';
 import { create } from 'zustand';
 import { EXAMPLES } from './examples';
-import { loadLatestProject, saveProject } from './persistence';
+import { loadCompleted, loadLatestProject, saveCompleted, saveProject } from './persistence';
 import type { WorkerRequest, WorkerResponse } from './sim-protocol';
 
 const newId = () => crypto.randomUUID();
@@ -84,6 +86,22 @@ interface AppState {
   running: boolean;
   serial: string;
   turned: Record<string, number>;
+  chapter: 'play' | 'kit' | 'exp' | 'code' | 'set';
+  article: string | null;
+  lessonId: string | null;
+  lessonStep: number;
+  showParts: boolean;
+  completed: string[];
+  observed: Observed;
+  setChapter(chapter: AppState['chapter']): void;
+  openArticle(id: string | null): void;
+  startLesson(id: string): void;
+  setLessonStep(step: number): void;
+  closeLesson(): void;
+  togglePanel(): void;
+  loadLessonSketch(): void;
+  completeLesson(): void;
+  setStatus(status: string): void;
   setSketch(sketch: string): void;
   run(): void;
   stop(): void;
@@ -135,6 +153,15 @@ const fromProject = (p: Project) => ({
 let worker: Worker | null = null;
 const post = (message: WorkerRequest) => worker?.postMessage(message);
 const SERIAL_LIMIT = 20_000;
+let wasOn = false;
+let seenLevels = new Set<number>();
+
+const learningListeners = new Set<(event: LearningEvent) => void>();
+export const onLearningEvent = (listener: (event: LearningEvent) => void) => {
+  learningListeners.add(listener);
+  return () => learningListeners.delete(listener);
+};
+const emitLearning = (event: LearningEvent) => learningListeners.forEach((l) => l(event));
 
 export const useApp = create<AppState>((set, get) => {
   const run = (command: Command) => set((s) => ({ history: execute(s.history, command) }));
@@ -153,6 +180,43 @@ export const useApp = create<AppState>((set, get) => {
     running: false,
     serial: '',
     turned: {},
+    chapter: 'play',
+    article: null,
+    lessonId: null,
+    lessonStep: 0,
+    showParts: false,
+    completed: [],
+    observed: noObservations(),
+    setChapter: (chapter) => set({ chapter }),
+    openArticle: (article) => set({ article, chapter: article ? 'kit' : get().chapter }),
+    startLesson(id) {
+      set({
+        lessonId: id,
+        lessonStep: 0,
+        chapter: 'play',
+        showParts: false,
+        observed: noObservations(),
+      });
+      emitLearning({ type: 'lesson.started', lesson: id });
+    },
+    setLessonStep: (lessonStep) => set({ lessonStep }),
+    closeLesson: () => set({ lessonId: null }),
+    togglePanel: () => set((s) => ({ showParts: !s.showParts })),
+    loadLessonSketch() {
+      const sketch = LESSONS.find((l) => l.id === get().lessonId)?.sketch;
+      if (sketch) set({ sketch, problem: null, status: 'Sketch loaded into the Code Lab.' });
+    },
+    completeLesson() {
+      const { lessonId, completed } = get();
+      if (!lessonId) return;
+      const next = [...new Set([...completed, lessonId])];
+      set({ completed: next, status: 'Lesson complete.' });
+      emitLearning({ type: 'lesson.completed', lesson: lessonId });
+      saveCompleted(next).catch(() =>
+        set({ status: 'Lesson complete, but progress could not be saved here.' }),
+      );
+    },
+    setStatus: (status) => set({ status }),
     setSketch: (sketch) => set({ sketch, problem: null }),
     run() {
       const { sketch, history, turned } = get();
@@ -165,10 +229,22 @@ export const useApp = create<AppState>((set, get) => {
       worker?.terminate();
       worker = new Worker(new URL('./sim.worker.ts', import.meta.url), { type: 'module' });
       worker.onmessage = ({ data }: MessageEvent<WorkerResponse>) => {
-        set((s) => ({
-          sim: data.state,
-          serial: (s.serial + data.serial).slice(-SERIAL_LIMIT),
-        }));
+        set((s) => {
+          const levels = Object.values(data.state.components).map((c) => c.brightness);
+          const on = levels.some((b) => b > 0);
+          const changed = on !== wasOn;
+          wasOn = on;
+          for (const b of levels) seenLevels.add(Math.round(b * 10));
+          return {
+            sim: data.state,
+            serial: (s.serial + data.serial).slice(-SERIAL_LIMIT),
+            observed: {
+              ledTransitions: s.observed.ledTransitions + (changed ? 1 : 0),
+              brightnessLevels: seenLevels.size,
+              serial: (s.observed.serial + data.serial).slice(-SERIAL_LIMIT),
+            },
+          };
+        });
       };
       const inputs: ComponentInput[] = Object.entries(turned).map(([instance, position]) => ({
         instance,
@@ -176,7 +252,15 @@ export const useApp = create<AppState>((set, get) => {
         position,
       }));
       post({ type: 'start', circuit: history.present, sketch, inputs });
-      set({ running: true, problem: null, serial: '', status: 'Running.' });
+      wasOn = false;
+      seenLevels = new Set();
+      set({
+        running: true,
+        problem: null,
+        serial: '',
+        status: 'Running.',
+        observed: noObservations(),
+      });
     },
     stop() {
       // Terminating the worker works however the sketch is behaving.
@@ -193,6 +277,7 @@ export const useApp = create<AppState>((set, get) => {
     sendSerial: (text) => post({ type: 'serial', text }),
     async init() {
       try {
+        set({ completed: await loadCompleted() });
         const saved = await loadLatestProject();
         if (!saved) return;
         // Stored data is revalidated, as it may come from an older version.

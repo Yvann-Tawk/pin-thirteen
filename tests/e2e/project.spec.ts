@@ -15,7 +15,7 @@ test('places, undoes, saves and reopens a project', async ({ page }) => {
   await expect(leds(page)).toHaveCount(1);
   await page.getByRole('button', { name: 'Redo' }).click();
   await expect(leds(page)).toHaveCount(2);
-  await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByText('Saved in this browser.')).toBeVisible();
   await page.reload();
   await expect(leds(page)).toHaveCount(2);

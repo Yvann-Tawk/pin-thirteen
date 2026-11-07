@@ -1,3 +1,5 @@
+import { articleFor, explainPin, FINDING_ARTICLES, searchArticles } from '@pin-thirteen/knowledge';
+import { evaluate, lessonPassed, LESSONS } from '@pin-thirteen/learning';
 import { registry, type ComponentDefinition } from '@pin-thirteen/registry';
 import { validate } from '@pin-thirteen/validation';
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
@@ -10,6 +12,238 @@ import { Stage } from './Stage';
 import { useApp } from './store';
 
 type View = 'play' | 'kit' | 'exp' | 'code' | 'set';
+
+function Academy() {
+  const completed = useApp((s) => s.completed);
+  const startLesson = useApp((s) => s.startLesson);
+  return (
+    <div className="page-inner">
+      <h2 className="page-title">Academy</h2>
+      <ol className="lessons">
+        {LESSONS.map((l) => (
+          <li key={l.id}>
+            <button
+              className="lesson-card"
+              data-done={completed.includes(l.id)}
+              onClick={() => startLesson(l.id)}
+            >
+              <i>{l.number}</i>
+              <b>{l.title}</b>
+              <span>{l.summary}</span>
+              {l.support === 'approximate' && <em>Simulated estimate</em>}
+              {completed.includes(l.id) && <em>Complete</em>}
+            </button>
+          </li>
+        ))}
+      </ol>
+      <p className="pane-note lessons-later">
+        Sound, sensors, motors, displays and a combined project arrive as the parts are added.
+      </p>
+    </div>
+  );
+}
+
+function Library() {
+  const id = useApp((s) => s.article);
+  const open = useApp((s) => s.openArticle);
+  const startLesson = useApp((s) => s.startLesson);
+  const [query, setQuery] = useState('');
+  const article = id ? articleFor(id) : undefined;
+  const definition = article?.part ? registry.get(article.part) : undefined;
+  if (article) {
+    return (
+      <article className="page-inner article">
+        <button className="tool" onClick={() => open(null)}>
+          Back to Library
+        </button>
+        <h2 className="page-title">{article.title}</h2>
+        <h3>What it is</h3>
+        <p>{article.what}</p>
+        <h3>What it does</h3>
+        <p>{article.does}</p>
+        <h3>How it works</h3>
+        <p>{article.how}</p>
+        {definition && definition.specs.length > 0 && (
+          <>
+            <h3>Specifications</h3>
+            <ul>
+              {definition.specs.map((s) => (
+                <li key={s.label}>
+                  {s.label}: {s.value}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+        {definition && definition.pins.length <= 8 && (
+          <>
+            <h3>Pins</h3>
+            <ul>
+              {definition.pins.map((p) => (
+                <li key={p.id}>
+                  {p.label}: {explainPin(p)}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+        {definition && (
+          <>
+            <h3>In this simulator</h3>
+            <p>
+              {definition.simulation.educational.level}: {definition.simulation.educational.note}
+            </p>
+          </>
+        )}
+        {article.applications.length > 0 && (
+          <>
+            <h3>Common uses</h3>
+            <ul>
+              {article.applications.map((a) => (
+                <li key={a}>{a}</li>
+              ))}
+            </ul>
+          </>
+        )}
+        <h3>Wiring</h3>
+        <p>{article.wiring}</p>
+        {article.code && (
+          <>
+            <h3>Code</h3>
+            <pre>{article.code}</pre>
+          </>
+        )}
+        <h3>Common mistakes</h3>
+        <ul>
+          {article.mistakes.map((m) => (
+            <li key={m}>{m}</li>
+          ))}
+        </ul>
+        <h3>Troubleshooting</h3>
+        <ul>
+          {article.troubleshooting.map((t) => (
+            <li key={t}>{t}</li>
+          ))}
+        </ul>
+        {article.lessons.length > 0 && (
+          <>
+            <h3>Related lessons</h3>
+            <div className="row">
+              {article.lessons.map((l) => (
+                <button key={l} className="tool" onClick={() => startLesson(l)}>
+                  {LESSONS.find((x) => x.id === l)?.title}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </article>
+    );
+  }
+  return (
+    <div className="page-inner">
+      <h2 className="page-title">Library</h2>
+      <label className="library-search">
+        Search
+        <input value={query} onChange={(e) => setQuery(e.target.value)} />
+      </label>
+      <ul className="lessons">
+        {searchArticles(query).map((a) => (
+          <li key={a.id}>
+            <button className="lesson-card" onClick={() => open(a.id)}>
+              <b>{a.title}</b>
+              <span>{a.what}</span>
+              {a.tool && <em>Reference only</em>}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function LessonPanel() {
+  const s = useApp();
+  const lesson = LESSONS.find((l) => l.id === s.lessonId);
+  if (!lesson) return null;
+  const step = lesson.steps[s.lessonStep]!;
+  const ctx = { doc: s.history.present, sketch: s.sketch, observed: s.observed, registry };
+  const verifying = step.kind === 'verification';
+  const passed = lessonPassed(lesson, ctx);
+  const done = s.completed.includes(lesson.id);
+  return (
+    <section className="lesson" aria-label="Lesson">
+      <p className="lesson-count">
+        Lesson {lesson.number} · Step {s.lessonStep + 1} of 8
+      </p>
+      <h2>{step.title}</h2>
+      <div className="lesson-body">
+        {step.body.map((p) => (
+          <p key={p}>{p}</p>
+        ))}
+        {step.kind === 'components' && (
+          <ul>
+            {lesson.parts.map((p) => {
+              const d = registry.get(p);
+              return (
+                <li key={p}>
+                  <button className="tool" onClick={() => s.place(p)}>
+                    Place {d?.name}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        {step.kind === 'programming' && lesson.sketch && (
+          <button className="tool primary" onClick={s.loadLessonSketch}>
+            Load sketch
+          </button>
+        )}
+        {verifying && (
+          <ul className="checks" aria-label="Lesson checks">
+            {lesson.verify.map((c) => {
+              const ok = evaluate(c, ctx);
+              return (
+                <li key={c.label} data-ok={ok}>
+                  {ok ? 'Done: ' : 'To do: '}
+                  {c.label}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        {verifying && (
+          <button className="tool primary" disabled={!passed || done} onClick={s.completeLesson}>
+            {done ? 'Lesson complete' : 'Complete lesson'}
+          </button>
+        )}
+      </div>
+      <div className="row lesson-nav">
+        <button
+          className="tool"
+          disabled={s.lessonStep === 0}
+          onClick={() => s.setLessonStep(s.lessonStep - 1)}
+        >
+          Back
+        </button>
+        <button
+          className="tool"
+          disabled={s.lessonStep === 7}
+          onClick={() => s.setLessonStep(s.lessonStep + 1)}
+        >
+          Next
+        </button>
+        <button className="tool" onClick={s.togglePanel}>
+          {s.showParts ? 'Lesson' : 'Parts'}
+        </button>
+        <button className="tool" onClick={s.closeLesson}>
+          Exit
+        </button>
+      </div>
+    </section>
+  );
+}
 
 const CHAPTERS: { view: View; label: string; icon: ReactNode }[] = [
   {
@@ -25,10 +259,10 @@ const CHAPTERS: { view: View; label: string; icon: ReactNode }[] = [
   },
   {
     view: 'kit',
-    label: 'Compo­nents',
+    label: 'Library',
     icon: <path d="M7 15V8a5 5 0 0 1 10 0v7zM5 15h14M9 15v7M15 15v5" />,
   },
-  { view: 'exp', label: 'Experi­ments', icon: <path d="M9 3h6M10 3v7l-6 10h16l-6-10V3M7 15h10" /> },
+  { view: 'exp', label: 'Academy', icon: <path d="M9 3h6M10 3v7l-6 10h16l-6-10V3M7 15h10" /> },
   { view: 'code', label: 'Code Lab', icon: <path d="M8 7l-5 5 5 5M16 7l5 5-5 5M14 4l-4 16" /> },
   {
     view: 'set',
@@ -127,6 +361,7 @@ function Findings() {
   const doc = useApp((s) => s.history.present);
   const sim = useApp((s) => s.sim);
   const problem = useApp((s) => s.problem);
+  const open = useApp((s) => s.openArticle);
   const findings = useMemo(() => validate(doc, registry), [doc]);
   const label = { error: 'Error', hazard: 'Hazard', limitation: 'Limit' };
   return (
@@ -149,6 +384,11 @@ function Findings() {
       {findings.map((f) => (
         <li key={f.id + (f.instance ?? '')} data-severity={f.severity} data-finding={f.id}>
           <b>{label[f.severity]}</b> {f.message}
+          {FINDING_ARTICLES[f.id] && (
+            <button className="why" onClick={() => open(FINDING_ARTICLES[f.id]!)}>
+              Why?
+            </button>
+          )}
         </li>
       ))}
     </ul>
@@ -256,10 +496,12 @@ export function App() {
     addEventListener('keydown', onKey);
     return () => removeEventListener('keydown', onKey);
   }, []);
-  const [view, setView] = useState<View>('play');
+  const view = useApp((s) => s.chapter);
+  const setView = useApp((s) => s.setChapter);
+  const inLesson = useApp((s) => !!s.lessonId && !s.showParts);
   const [dealt, setDealt] = useState(0);
   const status = useApp((s) => s.status);
-  const page = view === 'exp' || view === 'set' ? view : 'play';
+  const page = view === 'exp' || view === 'set' || view === 'kit' ? view : 'play';
   return (
     <div className={`app${view === 'code' ? ' code-open' : ''}`}>
       <svg className="defs" aria-hidden="true" focusable="false">
@@ -316,13 +558,11 @@ export function App() {
           </p>
           <Toolbar />
         </section>
-        <section className="page" aria-label="Experiments" hidden={page !== 'exp'}>
-          <div className="page-inner">
-            <h2 className="page-title">Experiments</h2>
-            <p className="pane-note" style={{ paddingLeft: 0 }}>
-              Lessons arrive in Phase 4.
-            </p>
-          </div>
+        <section className="page" aria-label="Academy" hidden={page !== 'exp'}>
+          <Academy />
+        </section>
+        <section className="page" aria-label="Library" hidden={page !== 'kit'}>
+          <Library />
         </section>
         <section className="page" aria-label="Settings" hidden={page !== 'set'}>
           <div className="page-inner" style={{ background: 'var(--grain), var(--palette-5)' }}>
@@ -334,19 +574,25 @@ export function App() {
         </section>
       </main>
       <aside className="kit" aria-label="Component collection">
-        <header>
-          <h2>
-            The
-            <br />
-            Collection
-          </h2>
-          <p>{registry.all().length} PIECES · CLICK TO PLACE</p>
-        </header>
-        <div className="cards show" key={dealt}>
-          {registry.all().map((d, i) => (
-            <Card key={d.id} definition={d} index={i} />
-          ))}
-        </div>
+        {inLesson ? (
+          <LessonPanel />
+        ) : (
+          <>
+            <header>
+              <h2>
+                The
+                <br />
+                Collection
+              </h2>
+              <p>{registry.all().length} PIECES · CLICK TO PLACE</p>
+            </header>
+            <div className="cards show" key={dealt}>
+              {registry.all().map((d, i) => (
+                <Card key={d.id} definition={d} index={i} />
+              ))}
+            </div>
+          </>
+        )}
       </aside>
       <CodeLab />
     </div>

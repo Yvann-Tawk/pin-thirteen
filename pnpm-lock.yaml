@@ -74,6 +74,12 @@ importers:
       '@pin-thirteen/design-system':
         specifier: workspace:^
         version: link:../../packages/design-system
+      '@pin-thirteen/knowledge':
+        specifier: workspace:*
+        version: link:../../packages/knowledge
+      '@pin-thirteen/learning':
+        specifier: workspace:*
+        version: link:../../packages/learning
       '@pin-thirteen/registry':
         specifier: workspace:^
         version: link:../../packages/registry
@@ -125,6 +131,31 @@ importers:
         version: 4.6.7
 
   packages/design-system: {}
+
+  packages/knowledge:
+    dependencies:
+      '@pin-thirteen/registry':
+        specifier: workspace:*
+        version: link:../registry
+
+  packages/learning:
+    dependencies:
+      '@pin-thirteen/circuit-core':
+        specifier: workspace:*
+        version: link:../circuit-core
+      '@pin-thirteen/registry':
+        specifier: workspace:*
+        version: link:../registry
+      '@pin-thirteen/sim-core':
+        specifier: workspace:*
+        version: link:../sim-core
+      '@pin-thirteen/validation':
+        specifier: workspace:*
+        version: link:../validation
+    devDependencies:
+      '@pin-thirteen/sim-edu':
+        specifier: workspace:*
+        version: link:../sim-edu
 
   packages/registry:
     dependencies:

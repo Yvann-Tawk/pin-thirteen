@@ -1,8 +1,9 @@
 import { cpp } from '@codemirror/lang-cpp';
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
 import { setDiagnostics, type Diagnostic as LintDiagnostic } from '@codemirror/lint';
-import { EditorView } from '@codemirror/view';
+import { EditorView, hoverTooltip } from '@codemirror/view';
 import { tags as t } from '@lezer/highlight';
+import { FUNCTION_DOCS } from '@pin-thirteen/knowledge';
 import type { Diagnostic } from '@pin-thirteen/sim-edu';
 import { basicSetup } from 'codemirror';
 import { useEffect, useRef } from 'react';
@@ -19,6 +20,22 @@ const pen = HighlightStyle.define([
   { tag: t.string, backgroundColor: 'var(--palette-4)' },
   { tag: t.comment, fontStyle: 'italic', color: 'var(--char)' },
 ]);
+
+const docs = hoverTooltip((view, pos) => {
+  const word = view.state.wordAt(pos);
+  const text = word && FUNCTION_DOCS[view.state.sliceDoc(word.from, word.to)];
+  if (!word || !text) return null;
+  return {
+    pos: word.from,
+    end: word.to,
+    create() {
+      const dom = document.createElement('div');
+      dom.className = 'code-tip';
+      dom.textContent = text;
+      return { dom };
+    },
+  };
+});
 
 const paper = EditorView.theme({
   '&': { height: '100%', backgroundColor: 'transparent', fontSize: '14px' },
@@ -65,6 +82,7 @@ export function Editor({
         cpp(),
         syntaxHighlighting(pen),
         paper,
+        docs,
         EditorView.contentAttributes.of({ 'aria-label': 'Sketch editor' }),
         EditorView.updateListener.of((u) => {
           if (u.docChanged) change.current(u.state.doc.toString());

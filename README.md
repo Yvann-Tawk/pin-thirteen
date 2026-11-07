@@ -2,7 +2,7 @@
 
 A browser-based, open-source playground for learning electronics, drawn like a comic book made of paper. Compatible with Arduino sketches.
 
-**Status: early development.** Build a circuit, write a sketch, and run it in the educational simulator. Lessons are not built yet. See [what sketches can use](docs/sketch-subset.md).
+**Status: early development.** Build a circuit, write a sketch, run it in the educational simulator, and follow lessons in the Academy. See [what sketches can use](docs/sketch-subset.md).
 
 ## Run it
 

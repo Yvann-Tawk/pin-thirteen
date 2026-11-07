@@ -146,6 +146,9 @@ export function Inspector() {
         </button>
       )}
       <WireForm from={component.id} />
+      <button className="tool" onClick={() => s.openArticle(definition.id)}>
+        Learn more
+      </button>
       <div className="row">
         {!definition.isBoard && (
           <button className="tool" onClick={() => s.rotate(component.id)}>
