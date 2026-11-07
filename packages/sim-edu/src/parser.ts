@@ -54,6 +54,7 @@ export interface FuncDecl extends Pos {
 }
 
 export interface Unit {
+  servos: string[];
   globals: VarDecl[];
   functions: FuncDecl[];
 }
@@ -479,9 +480,14 @@ export function parse(tokens: Token[]): Unit {
     return { ...at, k: 'expr', expr: e };
   }
 
-  const unit: Unit = { globals: [], functions: [] };
+  const unit: Unit = { servos: [], globals: [], functions: [] };
   while (peek().kind !== 'eof') {
     checkWord(peek());
+    if (accept('Servo')) {
+      unit.servos.push(name());
+      expect(';');
+      continue;
+    }
     if (!startsType()) fail(`Expected a variable or function here, not ${peek().text}.`);
     const at = pos();
     const save = p;

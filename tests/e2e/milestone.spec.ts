@@ -96,3 +96,19 @@ test('the Library lists tools as reference only', async ({ page }) => {
     'Reference only',
   );
 });
+
+test('a lesson from the new hardware runs: servo moves through the shim', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /SG90/ }).click();
+  await wire(page, 'servo-sg90', 'signal', /UNO/, 'D9');
+  await wire(page, 'servo-sg90', 'vcc', /UNO/, '5V');
+  await wire(page, 'servo-sg90', 'gnd', /UNO/, 'GND_1');
+  await page.getByRole('button', { name: /Aca/ }).click();
+  await page.getByRole('button', { name: /Controlling motors/ }).click();
+  for (let i = 0; i < 4; i++) await page.getByRole('button', { name: 'Next' }).click();
+  await page.getByRole('button', { name: 'Load sketch' }).click();
+  await page.getByRole('button', { name: 'Run', exact: true }).click();
+  await expect(page.locator('[data-readout="30°"]')).toBeVisible();
+  await expect(page.locator('[data-readout="150°"]')).toBeVisible({ timeout: 3000 });
+  await page.getByRole('button', { name: 'Stop' }).click();
+});

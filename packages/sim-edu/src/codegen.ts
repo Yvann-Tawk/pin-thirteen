@@ -62,6 +62,9 @@ const BUILTINS: Record<string, Sig> = {
   abs: { args: ['long'], ret: 'long' },
   min: { args: ['long', 'long'], ret: 'long' },
   max: { args: ['long', 'long'], ret: 'long' },
+  tone: { args: ['byte', 'uint'], ret: 'void' },
+  noTone: { args: ['byte'], ret: 'void' },
+  pulseIn: { args: ['byte', 'byte'], ret: 'ulong' },
   'Serial.begin': { args: ['long'], ret: 'void' },
   'Serial.available': { args: [], ret: 'int' },
   'Serial.read': { args: [], ret: 'int' },
@@ -85,11 +88,8 @@ const CONSTANTS: Record<string, [number, CType]> = {
 };
 
 const LATER: Record<string, string> = {
-  tone: 'tone() arrives with the buzzer part.',
-  noTone: 'noTone() arrives with the buzzer part.',
   attachInterrupt: 'Interrupts need the AVR engine, planned for a later phase.',
   random: 'random() is not supported yet.',
-  pulseIn: 'pulseIn() arrives with the ultrasonic sensor.',
 };
 
 const RANK: CType[] = ['int', 'uint', 'long', 'ulong', 'float'];
@@ -364,6 +364,19 @@ export function generate(unit: Unit): Program {
         }
       }
       if (nl) emit('sys', { s: 'printStr', a: strings.push('\r\n') - 1 });
+      return 'void';
+    }
+    const dot = e.name.indexOf('.');
+    const servo = dot > 0 ? unit.servos.indexOf(e.name.slice(0, dot)) : -1;
+    if (servo >= 0) {
+      const method = e.name.slice(dot + 1);
+      if ((method !== 'attach' && method !== 'write') || e.args.length !== 1) {
+        fail(e, `Servo supports attach(pin) and write(angle) here.`, 'unsupported');
+      }
+      emit('push', { a: servo });
+      conv(value(e.args[0]!), 'int');
+      line = e.line;
+      emit('sys', { s: `servo.${method}` });
       return 'void';
     }
     const user = funcs.get(e.name);

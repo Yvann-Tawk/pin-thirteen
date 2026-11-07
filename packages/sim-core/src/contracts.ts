@@ -9,12 +9,19 @@ export interface EngineCapabilities {
 
 export type ComponentInput =
   | { instance: InstanceId; kind: 'press'; pressed: boolean }
-  | { instance: InstanceId; kind: 'turn'; position: number };
+  | { instance: InstanceId; kind: 'turn'; position: number }
+  | { instance: InstanceId; kind: 'channel'; channel: string; value: number };
 
 export interface ComponentState {
   /** 0 to 1. Unlit parts report 0. */
   brightness: number;
   milliamps?: number;
+  /** Short text such as 90° or 440 Hz, shown beside the part. */
+  readout?: string;
+  /** Lit segment pins, for displays. */
+  segments?: string[];
+  /** Tone being played, for audio output. */
+  frequency?: number;
 }
 
 export interface SimulationState {

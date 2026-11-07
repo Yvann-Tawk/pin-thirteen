@@ -42,9 +42,25 @@ export type ElectricalModel =
   | { kind: 'resistor'; a: PinId; b: PinId; ohmsParam: string }
   | { kind: 'diode'; anode: PinId; cathode: PinId; forwardVolts: number }
   | { kind: 'switch'; a: PinId; b: PinId }
-  | { kind: 'divider'; endA: PinId; endB: PinId; wiper: PinId; ohmsParam: string };
+  | { kind: 'divider'; endA: PinId; endB: PinId; wiper: PinId; ohmsParam: string }
+  /** Powered module whose outputs follow simulated inputs. */
+  | { kind: 'module'; vcc: PinId; gnd: PinId; outputs: { pin: PinId; channel: string }[] }
+  | { kind: 'speaker'; a: PinId; b: PinId }
+  | { kind: 'segments'; common: PinId; segments: PinId[]; forwardVolts: number }
+  | { kind: 'servo'; signal: PinId; vcc: PinId; gnd: PinId }
+  | { kind: 'ranger'; vcc: PinId; gnd: PinId; trig: PinId; echo: PinId; channel: string };
 
-export type Interaction = { kind: 'press' } | { kind: 'turn' };
+export interface Channel {
+  key: string;
+  label: string;
+  min: number;
+  max: number;
+  default: number;
+  unit?: string;
+}
+
+export type Interaction =
+  { kind: 'press' } | { kind: 'turn' } | { kind: 'channels'; channels: Channel[] };
 
 export interface SupportEntry {
   level: SupportLevel;

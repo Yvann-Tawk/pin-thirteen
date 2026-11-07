@@ -36,9 +36,6 @@ function Academy() {
           </li>
         ))}
       </ol>
-      <p className="pane-note lessons-later">
-        Sound, sensors, motors, displays and a combined project arrive as the parts are added.
-      </p>
     </div>
   );
 }

@@ -133,6 +133,20 @@ export function Inspector() {
           />
         </label>
       )}
+      {definition.interaction?.kind === 'channels' &&
+        definition.interaction.channels.map((ch) => (
+          <label key={ch.key}>
+            {ch.label}
+            {ch.unit ? ` (${ch.unit})` : ''}
+            <input
+              type="range"
+              min={ch.min}
+              max={ch.max}
+              value={s.channels[`${component.id}:${ch.key}`] ?? ch.default}
+              onChange={(e) => s.setChannel(component.id, ch.key, Number(e.target.value))}
+            />
+          </label>
+        ))}
       {definition.interaction?.kind === 'press' && s.running && (
         <button
           className="tool"

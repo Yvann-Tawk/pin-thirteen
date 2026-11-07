@@ -32,7 +32,10 @@ export type Check =
   | { type: 'sim.ledBlinked'; minTransitions: number; label: string }
   | { type: 'sim.ledDimmed'; label: string }
   | { type: 'sim.serialPrinted'; label: string }
-  | { type: 'sim.serialVaried'; label: string };
+  | { type: 'sim.serialVaried'; label: string }
+  /** Text a part has shown, matched loosely so any note or angle counts. */
+  | { type: 'sim.partReported'; part: string; label: string }
+  | { type: 'sim.segmentsLit'; label: string };
 
 export interface Lesson {
   id: string;
@@ -53,12 +56,16 @@ export interface Observed {
   ledTransitions: number;
   brightnessLevels: number;
   serial: string;
+  readouts: string[];
+  segmentsSeen: boolean;
 }
 
 export const noObservations = (): Observed => ({
   ledTransitions: 0,
   brightnessLevels: 0,
   serial: '',
+  readouts: [],
+  segmentsSeen: false,
 });
 
 export interface CheckContext {
@@ -104,6 +111,10 @@ export function evaluate(check: Check, ctx: CheckContext): boolean {
       return observed.brightnessLevels >= 3;
     case 'sim.serialPrinted':
       return observed.serial.trim().length > 0;
+    case 'sim.partReported':
+      return observed.readouts.some((r) => r.includes(check.part));
+    case 'sim.segmentsLit':
+      return observed.segmentsSeen;
     case 'sim.serialVaried':
       return new Set(observed.serial.split(/\s+/).filter(Boolean)).size >= 2;
   }

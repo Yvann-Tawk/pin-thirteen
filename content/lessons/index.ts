@@ -80,6 +80,75 @@ void loop() {
 }
 `;
 
+const TONE = `void setup() {
+  pinMode(8, OUTPUT);
+}
+
+void loop() {
+  tone(8, 440);
+  delay(500);
+  tone(8, 660);
+  delay(500);
+}
+`;
+
+const RANGE = `void setup() {
+  pinMode(6, OUTPUT);
+  pinMode(7, INPUT);
+  Serial.begin(9600);
+}
+
+void loop() {
+  digitalWrite(6, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(6, LOW);
+  long echo = pulseIn(7, HIGH);
+  Serial.println(echo / 58);
+  delay(300);
+}
+`;
+
+const SWEEP = `#include <Servo.h>
+
+Servo arm;
+
+void setup() {
+  arm.attach(9);
+}
+
+void loop() {
+  arm.write(30);
+  delay(800);
+  arm.write(150);
+  delay(800);
+}
+`;
+
+const DIGIT = `void setup() {
+  pinMode(3, OUTPUT);
+  pinMode(4, OUTPUT);
+}
+
+void loop() {
+  digitalWrite(3, HIGH);
+  digitalWrite(4, HIGH);
+}
+`;
+
+const DOORBELL = `void setup() {
+  pinMode(2, INPUT_PULLUP);
+  pinMode(8, OUTPUT);
+}
+
+void loop() {
+  if (digitalRead(2) == LOW) {
+    tone(8, 880);
+  } else {
+    noTone(8);
+  }
+}
+`;
+
 const theory = (
   id: string,
   number: number,
@@ -535,6 +604,198 @@ export const LESSONS: Lesson[] = [
       { type: 'circuit.ledCanLight', gpio: 9, label: 'Pin 9 can light the LED' },
       { type: 'sketch.calls', name: 'analogWrite', label: 'The sketch uses analogWrite' },
       { type: 'sim.ledDimmed', label: 'The LED has shown several brightness levels' },
+    ],
+  },
+  {
+    id: 'sound',
+    number: 12,
+    title: 'Generating sound with a buzzer',
+    summary: 'Frequency, tone and loops.',
+    mode: 'build-code',
+    parts: ['uno-r3', 'passive-buzzer'],
+    support: 'approximate',
+    sketch: TONE,
+    steps: [
+      step(
+        'introduction',
+        'Start here',
+        'Sound is air moving back and forth. Your sketch can make that happen.',
+      ),
+      step(
+        'theory',
+        'The idea',
+        'Frequency is how fast something repeats, in hertz. Higher frequency means a higher note.',
+        'tone(pin, frequency) plays a note. noTone(pin) stops it.',
+      ),
+      step('components', 'What you need', 'A board and a passive buzzer.'),
+      step('assembly', 'Wire it', 'Wire D8 to the buzzer plus pin, and the minus pin to GND.'),
+      step('programming', 'Write the sketch', 'Load it. A for loop could play a scale later.'),
+      step(
+        'experiment',
+        'Explore',
+        'Press Run, and change the frequencies. Your browser plays the tone at the simulated pitch.',
+      ),
+      step('verification', 'Check your work', 'Run the sketch.'),
+      step('recap', 'What you learned', 'Frequency sets pitch. tone() drives a buzzer from a pin.'),
+    ],
+    verify: [
+      {
+        type: 'circuit.pinTouches',
+        gpio: 8,
+        part: 'passive-buzzer',
+        label: 'D8 reaches the buzzer',
+      },
+      { type: 'sketch.calls', name: 'tone', label: 'The sketch uses tone' },
+      { type: 'sim.partReported', part: 'Hz', label: 'The buzzer has played a tone' },
+    ],
+  },
+  {
+    id: 'sensors',
+    number: 13,
+    title: 'Working with sensors',
+    summary: 'Measure distance with echoes.',
+    mode: 'build-code',
+    parts: ['uno-r3', 'hc-sr04'],
+    support: 'approximate',
+    sketch: RANGE,
+    steps: [
+      step('introduction', 'Start here', 'Sensors turn the world into numbers.'),
+      step(
+        'theory',
+        'The idea',
+        'The HC-SR04 sends a pulse of sound, and reports how long the echo took.',
+        'Sound takes about 58 microseconds to travel a centimetre there and back.',
+      ),
+      step('components', 'What you need', 'A board and an ultrasonic sensor.'),
+      step('assembly', 'Wire it', 'VCC to 5V, GND to GND, TRIG to D6, and ECHO to D7.'),
+      step('programming', 'Write the sketch', 'Load it. pulseIn measures the echo.'),
+      step(
+        'experiment',
+        'Explore',
+        'Run it, open Serial Monitor, select the sensor, and move its distance slider.',
+        'The simulator gives an exact answer. Real sensors are noisier.',
+      ),
+      step('verification', 'Check your work', 'Run it and change the distance.'),
+      step('recap', 'What you learned', 'Sensors need power, signals, and a little maths.'),
+    ],
+    verify: [
+      { type: 'circuit.pinTouches', gpio: 7, part: 'hc-sr04', label: 'D7 reaches the sensor' },
+      { type: 'sketch.calls', name: 'pulseIn', label: 'The sketch uses pulseIn' },
+      { type: 'sim.serialVaried', label: 'Distances have changed in Serial Monitor' },
+    ],
+  },
+  {
+    id: 'motors',
+    number: 14,
+    title: 'Controlling motors',
+    summary: 'Move a servo to an angle.',
+    mode: 'build-code',
+    parts: ['uno-r3', 'servo-sg90'],
+    support: 'approximate',
+    sketch: SWEEP,
+    steps: [
+      step('introduction', 'Start here', 'Now your sketch can move something.'),
+      step(
+        'theory',
+        'The idea',
+        'A servo turns to the angle you ask for.',
+        'A library is ready-made code. #include brings it in.',
+        'Real motors draw more current than a pin can give, so they get their own power.',
+      ),
+      step('components', 'What you need', 'A board and an SG90 servo.'),
+      step('assembly', 'Wire it', 'Signal to D9, VCC to 5V, GND to GND.'),
+      step(
+        'programming',
+        'Write the sketch',
+        'Load it. This simulator models the Servo library, not the pulses.',
+      ),
+      step('experiment', 'Explore', 'Change the angles, and watch the reading beside the servo.'),
+      step('verification', 'Check your work', 'Run the sketch.'),
+      step(
+        'recap',
+        'What you learned',
+        'Libraries add abilities. A servo moves to a commanded angle.',
+      ),
+    ],
+    verify: [
+      { type: 'circuit.pinTouches', gpio: 9, part: 'servo-sg90', label: 'D9 reaches the servo' },
+      { type: 'sim.partReported', part: '°', label: 'The servo has moved' },
+    ],
+  },
+  {
+    id: 'displays',
+    number: 15,
+    title: 'Displaying information',
+    summary: 'Light a 7-segment digit.',
+    mode: 'build-code',
+    parts: ['uno-r3', 'seven-segment', 'resistor'],
+    support: 'approximate',
+    sketch: DIGIT,
+    steps: [
+      step('introduction', 'Start here', 'Seven LEDs can draw every digit.'),
+      step(
+        'theory',
+        'The idea',
+        'Each segment is an LED with its own pin, and all of them share one common pin.',
+        'Arrays hold a list of pins, so a loop can set them all.',
+      ),
+      step('components', 'What you need', 'A board, a display, and a resistor.'),
+      step(
+        'assembly',
+        'Wire it',
+        'Wire common through a resistor to GND. Wire segments a to g to D2 to D8.',
+      ),
+      step(
+        'programming',
+        'Write the sketch',
+        'Load it. It shows the digit 1, using segments b and c.',
+      ),
+      step('experiment', 'Explore', 'Change which pins go HIGH to draw a different digit.'),
+      step('verification', 'Check your work', 'Run the sketch.'),
+      step('recap', 'What you learned', 'Displays are many outputs working together.'),
+    ],
+    verify: [
+      { type: 'circuit.pinTouches', gpio: 3, part: 'seven-segment', label: 'D3 reaches segment b' },
+      { type: 'sim.segmentsLit', label: 'Segments have lit' },
+    ],
+  },
+  {
+    id: 'combining',
+    number: 16,
+    title: 'Combining multiple components',
+    summary: 'A button that plays a note.',
+    mode: 'build-code',
+    parts: ['uno-r3', 'push-button', 'passive-buzzer'],
+    support: 'approximate',
+    sketch: DOORBELL,
+    steps: [
+      step('introduction', 'Start here', 'Real projects combine inputs and outputs.'),
+      step(
+        'theory',
+        'The idea',
+        'Plan first: what is the input, what is the decision, and what is the output?',
+        'Build one part at a time, and test as you go.',
+      ),
+      step('components', 'What you need', 'A board, a button, and a buzzer.'),
+      step(
+        'assembly',
+        'Wire it',
+        'Button side A to D2, side B to GND. Buzzer plus to D8, minus to GND.',
+      ),
+      step('programming', 'Write the sketch', 'Load it. Read each line, and name its job.'),
+      step('experiment', 'Explore', 'Change the note. Try adding an LED.'),
+      step('verification', 'Check your work', 'Run it, and press the button.'),
+      step('recap', 'What you learned', 'Input, decide, output: most projects are this loop.'),
+    ],
+    verify: [
+      { type: 'circuit.pinTouches', gpio: 2, part: 'push-button', label: 'D2 reaches the button' },
+      {
+        type: 'circuit.pinTouches',
+        gpio: 8,
+        part: 'passive-buzzer',
+        label: 'D8 reaches the buzzer',
+      },
+      { type: 'sim.partReported', part: 'Hz', label: 'The doorbell has rung' },
     ],
   },
 ];

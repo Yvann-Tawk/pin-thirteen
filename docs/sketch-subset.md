@@ -8,7 +8,7 @@ The educational simulator runs a defined part of the Arduino language. Anything 
 - **Variables:** globals, locals, `const`, one-dimensional arrays.
 - **Control:** functions, recursion, `if`, `else`, `for`, `while`, `do`, `switch`, `break`, `continue`, `return`, `?:`.
 - **Operators:** arithmetic, comparison, logic, bitwise, compound assignment, `++`, `--`, casts.
-- **Arduino:** `pinMode`, `digitalWrite`, `digitalRead`, `analogRead`, `analogWrite`, `delay`, `delayMicroseconds`, `millis`, `micros`, `map`, `constrain`, `abs`, `min`, `max`.
+- **Arduino:** `tone`, `noTone`, `pulseIn`, `pinMode`, `digitalWrite`, `digitalRead`, `analogRead`, `analogWrite`, `delay`, `delayMicroseconds`, `millis`, `micros`, `map`, `constrain`, `abs`, `min`, `max`.
 - **Serial:** `begin`, `print`, `println`, `available`, `read`. One value at a time, with no format argument.
 - **Constants:** `HIGH`, `LOW`, `INPUT`, `OUTPUT`, `INPUT_PULLUP`, `LED_BUILTIN`, `A0` to `A5`, `true`, `false`.
 
@@ -21,8 +21,9 @@ Integers wrap as they do on the UNO: `int` is 16-bit.
 - **Floating pins:** readings are arbitrary, and a note says so.
 - **Serial speed:** output is instant. The baud rate is ignored.
 - **Local variables** start at zero. On a real board they hold garbage, so do not rely on this.
+- **`pulseIn`, `tone` and `Servo`** model their result, not their signals. Only `attach` and `write` exist on `Servo`.
 - **Safety stops:** an out-of-range array index, division by zero, or very deep recursion stops the sketch with a message. A real board would misbehave silently.
 
 ## Not supported yet
 
-Pointers, references, classes, structs, templates, `String`, `#include`, `#define`, interrupts, direct port registers, multi-dimensional arrays, `random`, `tone`, `pulseIn`.
+Pointers, references, classes, structs, templates, `String`, `#define`, interrupts, direct port registers, multi-dimensional arrays, `random`, and any library other than the `Servo` shim.

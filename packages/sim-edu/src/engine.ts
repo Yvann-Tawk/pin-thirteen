@@ -30,6 +30,9 @@ export class EducationalEngine implements SimulationEngine<Program>, ArduinoHost
   private readonly pins = new Map<number, PinDrive>();
   private readonly pressed = new Set<string>();
   private readonly turned = new Map<string, number>();
+  private readonly channels = new Map<string, number>();
+  private readonly tones = new Map<number, number>();
+  private readonly servos = new Map<number, { pin: number; angle: number }>();
   private readonly notices = new Set<string>();
   private serialIn: number[] = [];
   private floatFlip = 0;
@@ -37,7 +40,7 @@ export class EducationalEngine implements SimulationEngine<Program>, ArduinoHost
   constructor(private readonly registry: Lookup) {}
 
   private inputs(): Inputs {
-    return { pins: this.pins, pressed: this.pressed, turned: this.turned };
+    return { pins: this.pins, pressed: this.pressed, turned: this.turned, channels: this.channels };
   }
 
   private solved(): CircuitSolution {
@@ -79,6 +82,8 @@ export class EducationalEngine implements SimulationEngine<Program>, ArduinoHost
     this.pins.clear();
     this.notices.clear();
     this.serialIn = [];
+    this.tones.clear();
+    this.servos.clear();
     this.solution = null;
     this.vm = new Vm(this.program, this);
   }
@@ -93,6 +98,8 @@ export class EducationalEngine implements SimulationEngine<Program>, ArduinoHost
     if (input.kind === 'press') {
       if (input.pressed) this.pressed.add(input.instance);
       else this.pressed.delete(input.instance);
+    } else if (input.kind === 'channel') {
+      this.channels.set(`${input.instance}:${input.channel}`, input.value);
     } else {
       this.turned.set(input.instance, Math.min(1, Math.max(0, input.position)));
     }
@@ -110,6 +117,7 @@ export class EducationalEngine implements SimulationEngine<Program>, ArduinoHost
         components[d.instance] = { brightness: d.brightness, milliamps: d.milliamps };
       }
     }
+    if (this.vm) this.partStates(components);
     const pin13 = this.pins.get(13);
     return {
       running: this.running,
@@ -120,6 +128,30 @@ export class EducationalEngine implements SimulationEngine<Program>, ArduinoHost
       fault: this.vm?.fault ?? null,
       notices: [...this.notices],
     };
+  }
+
+  private partStates(out: SimulationState['components']) {
+    const inputs = this.inputs();
+    for (const { c, d } of this.model.components) {
+      const e = d.electrical;
+      if (e?.kind === 'speaker') {
+        const pin = this.model.gpioAt(c.id, e.a, inputs) ?? this.model.gpioAt(c.id, e.b, inputs);
+        const frequency = pin === undefined ? undefined : this.tones.get(pin);
+        const other = this.model.gpioAt(c.id, e.a, inputs) === undefined ? e.a : e.b;
+        const grounded = this.solved().voltageAt(this.model.node(c.id, other))?.volts === 0;
+        out[c.id] =
+          frequency && grounded
+            ? { brightness: 0, frequency, readout: `${frequency} Hz` }
+            : { brightness: 0 };
+      } else if (e?.kind === 'segments') {
+        const segments = this.model.segmentsLit(c.id, e.common, e.segments, e.forwardVolts, inputs);
+        out[c.id] = { brightness: 0, segments };
+      } else if (e?.kind === 'servo' && this.model.powered(c.id, e.vcc, e.gnd, inputs)) {
+        const pin = this.model.gpioAt(c.id, e.signal, inputs);
+        const servo = [...this.servos.values()].find((s) => s.pin === pin);
+        if (servo) out[c.id] = { brightness: 0, readout: `${servo.angle}°` };
+      }
+    }
   }
 
   subscribe(listener: (e: SimulationEvent) => void) {
@@ -197,6 +229,43 @@ export class EducationalEngine implements SimulationEngine<Program>, ArduinoHost
 
   serialWrite(text: string) {
     for (const l of this.listeners) l({ type: 'serial', text });
+  }
+
+  tone(pin: number, frequency: number) {
+    this.tones.set(pin, frequency);
+  }
+
+  noTone(pin: number) {
+    this.tones.delete(pin);
+  }
+
+  /** Answers at once with the echo time, when a ranger's echo pin is wired to this pin. */
+  pulseIn(pin: number): number {
+    const inputs = this.inputs();
+    for (const { c, d } of this.model.components) {
+      const e = d.electrical;
+      if (e?.kind !== 'ranger' || this.model.gpioAt(c.id, e.echo, inputs) !== pin) continue;
+      if (!this.model.powered(c.id, e.vcc, e.gnd, inputs)) return 0;
+      if (this.model.gpioAt(c.id, e.trig, inputs) === undefined) return 0;
+      const channel = d.interaction?.kind === 'channels' ? d.interaction.channels[0] : undefined;
+      const cm = this.channels.get(`${c.id}:${e.channel}`) ?? channel?.default ?? 100;
+      return Math.round(cm * 58);
+    }
+    this.notices.add(`pulseIn on pin ${pin} found no echo signal, so it returned 0.`);
+    return 0;
+  }
+
+  servoAttach(servo: number, pin: number) {
+    this.servos.set(servo, { pin, angle: this.servos.get(servo)?.angle ?? 90 });
+  }
+
+  servoWrite(servo: number, angle: number) {
+    const known = this.servos.get(servo);
+    if (!known) {
+      this.notices.add('Call attach(pin) before write(angle).');
+      return;
+    }
+    this.servos.set(servo, { ...known, angle: Math.min(180, Math.max(0, angle)) });
   }
 
   serialAvailable() {

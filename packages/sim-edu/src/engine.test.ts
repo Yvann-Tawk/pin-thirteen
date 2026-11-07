@@ -141,3 +141,87 @@ describe('inputs through the circuit', () => {
     expect(none.getState().notices[0]).toContain('no PWM');
   });
 });
+
+describe('expanded parts', () => {
+  const started = async (src: string, c: CircuitDocument) => {
+    const e = await run(src, c);
+    let text = '';
+    e.subscribe((m) => void (m.type === 'serial' && (text += m.text)));
+    return { e, serial: () => text };
+  };
+  it('plays a tone only with a complete buzzer circuit', async () => {
+    const B = part('b', 'passive-buzzer');
+    const src = 'void setup(){ tone(8, 440); } void loop(){}';
+    const good = await run(
+      src,
+      doc([uno, B], [wire('u.D8', 'b.plus'), wire('b.minus', 'u.GND_1')]),
+    );
+    good.advance(1000);
+    expect(good.getState().components.b?.frequency).toBe(440);
+    const open = await run(src, doc([uno, B], [wire('u.D8', 'b.plus')]));
+    open.advance(1000);
+    expect(open.getState().components.b?.frequency).toBeUndefined();
+  });
+  it('reads a powered analog module, and nothing useful when unpowered', async () => {
+    const W = part('w', 'water-level');
+    const src = 'void setup(){ Serial.begin(9600); Serial.println(analogRead(A0)); } void loop(){}';
+    const wired = doc(
+      [uno, W],
+      [wire('u.5V', 'w.vcc'), wire('w.gnd', 'u.GND_1'), wire('w.s', 'u.A0')],
+    );
+    const compiled = compile(src);
+    const e = new EducationalEngine(registry);
+    let text = '';
+    e.subscribe((m) => void (m.type === 'serial' && (text += m.text)));
+    await e.initialize(wired);
+    if (compiled.ok) await e.loadProgram(compiled.program);
+    e.sendInput({ instance: 'w', kind: 'channel', channel: 'level', value: 50 });
+    await e.start();
+    e.advance(1000);
+    expect(text.trim()).toBe('512');
+    const dead = await run(src, doc([uno, W], [wire('w.s', 'u.A0')]));
+    dead.advance(1000);
+    expect(dead.getState().notices[0]).toContain('floating');
+  });
+  it('measures distance through pulseIn', async () => {
+    const S = part('s', 'hc-sr04');
+    const src =
+      'void setup(){ Serial.begin(9600); Serial.println(pulseIn(7, HIGH) / 58); } void loop(){}';
+    const c = doc(
+      [uno, S],
+      [
+        wire('u.5V', 's.vcc'),
+        wire('s.gnd', 'u.GND_1'),
+        wire('u.D6', 's.trig'),
+        wire('u.D7', 's.echo'),
+      ],
+    );
+    const { e, serial } = await started(src, c);
+    e.advance(100_000);
+    expect(serial().trim()).toBe('100');
+  });
+  it('moves a powered servo through the library shim', async () => {
+    const S = part('s', 'servo-sg90');
+    const src =
+      '#include <Servo.h>\nServo arm;\nvoid setup(){ arm.attach(9); arm.write(45); } void loop(){}';
+    const e = await run(
+      src,
+      doc([uno, S], [wire('u.D9', 's.signal'), wire('u.5V', 's.vcc'), wire('s.gnd', 'u.GND_1')]),
+    );
+    e.advance(1000);
+    expect(e.getState().components.s?.readout).toBe('45°');
+    const off = await run(src, doc([uno, S], [wire('u.D9', 's.signal')]));
+    off.advance(1000);
+    expect(off.getState().components.s?.readout).toBeUndefined();
+  });
+  it('lights the segments that are driven', async () => {
+    const D = part('d', 'seven-segment');
+    const src = 'void setup(){ pinMode(3, OUTPUT); digitalWrite(3, HIGH); } void loop(){}';
+    const e = await run(
+      src,
+      doc([uno, D, R], [wire('u.D3', 'd.b'), wire('d.com', 'r.a'), wire('r.b', 'u.GND_1')]),
+    );
+    e.advance(1000);
+    expect(e.getState().components.d?.segments).toEqual(['b']);
+  });
+});

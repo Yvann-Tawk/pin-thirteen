@@ -86,6 +86,8 @@ interface AppState {
   running: boolean;
   serial: string;
   turned: Record<string, number>;
+  channels: Record<string, number>;
+  setChannel(id: string, channel: string, value: number): void;
   chapter: 'play' | 'kit' | 'exp' | 'code' | 'set';
   article: string | null;
   lessonId: string | null;
@@ -154,6 +156,31 @@ let worker: Worker | null = null;
 const post = (message: WorkerRequest) => worker?.postMessage(message);
 const SERIAL_LIMIT = 20_000;
 let wasOn = false;
+let audio: AudioContext | null = null;
+let oscillator: OscillatorNode | null = null;
+
+/** Audible output follows the simulated frequency. It never plays without a running sketch. */
+function updateTone(state: SimulationState | null) {
+  const frequency = state
+    ? Object.values(state.components).find((c) => c.frequency)?.frequency
+    : undefined;
+  if (!frequency) {
+    oscillator?.stop();
+    oscillator = null;
+    return;
+  }
+  audio ??= new AudioContext();
+  if (!oscillator) {
+    const gain = audio.createGain();
+    gain.gain.value = 0.03;
+    gain.connect(audio.destination);
+    oscillator = audio.createOscillator();
+    oscillator.type = 'square';
+    oscillator.connect(gain);
+    oscillator.start();
+  }
+  oscillator.frequency.value = frequency;
+}
 let seenLevels = new Set<number>();
 
 const learningListeners = new Set<(event: LearningEvent) => void>();
@@ -180,6 +207,11 @@ export const useApp = create<AppState>((set, get) => {
     running: false,
     serial: '',
     turned: {},
+    channels: {},
+    setChannel(instance, channel, value) {
+      set((s) => ({ channels: { ...s.channels, [`${instance}:${channel}`]: value } }));
+      post({ type: 'input', input: { instance, kind: 'channel', channel, value } });
+    },
     chapter: 'play',
     article: null,
     lessonId: null,
@@ -219,7 +251,7 @@ export const useApp = create<AppState>((set, get) => {
     setStatus: (status) => set({ status }),
     setSketch: (sketch) => set({ sketch, problem: null }),
     run() {
-      const { sketch, history, turned } = get();
+      const { sketch, history, turned, channels } = get();
       const result = compile(sketch);
       if (!result.ok) {
         const problem = result.diagnostics[0] ?? null;
@@ -229,6 +261,7 @@ export const useApp = create<AppState>((set, get) => {
       worker?.terminate();
       worker = new Worker(new URL('./sim.worker.ts', import.meta.url), { type: 'module' });
       worker.onmessage = ({ data }: MessageEvent<WorkerResponse>) => {
+        updateTone(data.state);
         set((s) => {
           const levels = Object.values(data.state.components).map((c) => c.brightness);
           const on = levels.some((b) => b > 0);
@@ -242,6 +275,15 @@ export const useApp = create<AppState>((set, get) => {
               ledTransitions: s.observed.ledTransitions + (changed ? 1 : 0),
               brightnessLevels: seenLevels.size,
               serial: (s.observed.serial + data.serial).slice(-SERIAL_LIMIT),
+              readouts: [
+                ...new Set([
+                  ...s.observed.readouts,
+                  ...Object.values(data.state.components).flatMap((c) => c.readout ?? []),
+                ]),
+              ],
+              segmentsSeen:
+                s.observed.segmentsSeen ||
+                Object.values(data.state.components).some((c) => c.segments?.length),
             },
           };
         });
@@ -251,6 +293,10 @@ export const useApp = create<AppState>((set, get) => {
         kind: 'turn',
         position,
       }));
+      for (const [key, value] of Object.entries(channels)) {
+        const [instance, channel] = key.split(':') as [string, string];
+        inputs.push({ instance, kind: 'channel', channel, value });
+      }
       post({ type: 'start', circuit: history.present, sketch, inputs });
       wasOn = false;
       seenLevels = new Set();
@@ -266,6 +312,7 @@ export const useApp = create<AppState>((set, get) => {
       // Terminating the worker works however the sketch is behaving.
       worker?.terminate();
       worker = null;
+      updateTone(null);
       set({ running: false, sim: null, status: 'Stopped.' });
     },
     press: (instance, pressed) =>

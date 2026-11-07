@@ -111,6 +111,14 @@ export function validate(doc: CircuitDocument, registry: Lookup): Finding[] {
         });
       }
     }
+    if (e && 'vcc' in e && !model.powered(c.id, e.vcc, e.gnd, high)) {
+      findings.push({
+        id: 'unpowered',
+        severity: 'error',
+        instance: c.id,
+        message: `${d.name} needs power: connect its VCC and GND pins.`,
+      });
+    }
     if (e?.kind === 'resistor' || e?.kind === 'switch') {
       const near = (pin: string) => model.isConnected(c.id, pin);
       if (!near(e.a) || !near(e.b)) {

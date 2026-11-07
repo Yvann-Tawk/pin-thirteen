@@ -98,6 +98,10 @@ export function lex(source: string): Token[] {
       i = end + 2;
     } else if (c === '#') {
       const directive = /^#\s*(\w+)\s*(.*)/.exec(source.slice(i).split('\n')[0] ?? '');
+      if (directive?.[1] === 'include' && /Servo\.h/.test(directive[2] ?? '')) {
+        i += directive[0].length;
+        continue;
+      }
       if (directive?.[1] === 'include') {
         fail(
           `#include ${directive[2]} needs a library, which the educational simulator cannot load yet.`,

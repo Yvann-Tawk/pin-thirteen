@@ -11,6 +11,11 @@ export interface ArduinoHost {
   serialWrite(text: string): void;
   serialAvailable(): number;
   serialRead(): number;
+  tone(pin: number, frequency: number): void;
+  noTone(pin: number): void;
+  pulseIn(pin: number, level: number): number;
+  servoAttach(servo: number, pin: number): void;
+  servoWrite(servo: number, angle: number): void;
 }
 
 export interface RuntimeFault {
@@ -194,6 +199,31 @@ export class Vm {
         const b = pop(),
           a = pop();
         s.push(Math.max(a, b));
+        break;
+      }
+      case 'tone': {
+        const f = pop();
+        h.tone(pop(), f);
+        break;
+      }
+      case 'noTone':
+        h.noTone(pop());
+        break;
+      case 'pulseIn': {
+        const level = pop();
+        const width = h.pulseIn(pop(), level);
+        this.wakeAt = this.micros + width;
+        s.push(width);
+        break;
+      }
+      case 'servo.attach': {
+        const p = pop();
+        h.servoAttach(pop(), p);
+        break;
+      }
+      case 'servo.write': {
+        const a = pop();
+        h.servoWrite(pop(), a);
         break;
       }
       case 'Serial.begin':

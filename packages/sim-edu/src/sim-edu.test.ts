@@ -58,10 +58,10 @@ describe('language', () => {
 
 describe('diagnostics', () => {
   it.each([
-    ['#include <Servo.h>\nvoid setup(){}\nvoid loop(){}', 1, 'unsupported'],
+    ['#include <Wire.h>\nvoid setup(){}\nvoid loop(){}', 1, 'unsupported'],
     ['void setup(){\n  int *p;\n}\nvoid loop(){}', 2, 'unsupported'],
     ['void setup(){\n\n  String s;\n}\nvoid loop(){}', 3, 'unsupported'],
-    ['void setup(){\n  tone(8, 440);\n}\nvoid loop(){}', 2, 'unsupported'],
+    ['void setup(){\n  random(8);\n}\nvoid loop(){}', 2, 'unsupported'],
     ['void setup(){\n  int x = 1\n}\nvoid loop(){}', 2, 'syntax'],
     ['void setup(){\n  y = 1;\n}\nvoid loop(){}', 2, 'type'],
     ['const int x = 1;\nvoid setup(){\n  x = 2;\n}\nvoid loop(){}', 3, 'type'],

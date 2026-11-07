@@ -120,7 +120,7 @@ export function Stage() {
     if (part) {
       const id = part.dataset.instance!;
       s.select(id);
-      if (s.running && part.dataset.part === 'push-button') {
+      if (s.running && registry.get(part.dataset.part ?? '')?.interaction?.kind === 'press') {
         s.press(id, true);
         held.current = id;
         return;
@@ -246,7 +246,7 @@ export function Stage() {
                   if (e.key === 'Delete' || e.key === 'Backspace') s.remove(c.id);
                 }}
               >
-                <Art definition={definition} />
+                <Art definition={definition} lit={sim?.components[c.id]?.segments} />
               </g>
             </g>
           );
@@ -263,6 +263,30 @@ export function Stage() {
             >
               <circle r="34" fill="#ffee9a" opacity="0.65" />
               <circle r="34" fill="url(#dots-paper)" />
+            </g>
+          );
+        })}
+        {shown.components.map((c) => {
+          const readout = sim?.components[c.id]?.readout;
+          if (!readout) return null;
+          return (
+            <g
+              key={c.id}
+              pointerEvents="none"
+              transform={`translate(${c.position.x} ${c.position.y - 44})`}
+            >
+              <rect
+                x="-4"
+                y="-16"
+                width={readout.length * 8 + 12}
+                height="20"
+                fill="#ffee9a"
+                stroke="#1b1915"
+                strokeWidth="2"
+              />
+              <text x="2" y="-1" className="pin-tag" data-readout={readout}>
+                {readout}
+              </text>
             </g>
           );
         })}

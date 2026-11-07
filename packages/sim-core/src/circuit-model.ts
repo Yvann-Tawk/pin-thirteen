@@ -107,6 +107,21 @@ export class CircuitModel {
         edges.push({ a: this.nodeOf(c.id, e.a), b: this.nodeOf(c.id, e.b), ohms: 0 });
       }
     }
+    for (const { c, d } of this.components) {
+      const e = d.electrical;
+      if (e?.kind !== 'module') continue;
+      if (!this.isPowered(c.id, e.vcc, e.gnd, edges, sources)) continue;
+      for (const out of e.outputs) {
+        const channel =
+          d.interaction?.kind === 'channels'
+            ? d.interaction.channels.find((x) => x.key === out.channel)
+            : undefined;
+        const value = inputs.channels?.get(`${c.id}:${out.channel}`) ?? channel?.default ?? 0;
+        const span = channel ? channel.max - channel.min || 1 : 1;
+        const fraction = channel ? (value - channel.min) / span : value;
+        sources.set(this.nodeOf(c.id, out.pin), { volts: 5 * fraction, ohms: 1000 });
+      }
+    }
     // A divider's wiper is only known once both of its ends are.
     for (const { c, d } of this.components) {
       const e = d.electrical;
@@ -122,6 +137,51 @@ export class CircuitModel {
       });
     }
     return { edges, sources };
+  }
+
+  private isPowered(
+    id: string,
+    vcc: string,
+    gnd: string,
+    edges: Edge[],
+    sources: Map<string, Reach>,
+  ): boolean {
+    const v = reach(this.nodeOf(id, vcc), edges, sources);
+    const g = reach(this.nodeOf(id, gnd), edges, sources);
+    return !!v && !!g && v.volts - g.volts >= 3;
+  }
+
+  /** True when a part has both a supply and a ground path. */
+  powered(id: string, vcc: string, gnd: string, inputs: Inputs): boolean {
+    const { edges, sources } = this.edges(inputs);
+    return this.isPowered(id, vcc, gnd, edges, sources);
+  }
+
+  /** The Arduino pin wired to a part's pin, through wires or series resistors. */
+  gpioAt(id: string, pin: string, inputs: Inputs): number | undefined {
+    const { edges } = this.edges(inputs);
+    const node = this.nodeOf(id, pin);
+    for (const [gpio, candidate] of this.gpioNodes) {
+      if (joined(candidate, node, edges)) return gpio;
+    }
+    return undefined;
+  }
+
+  /** Lit segments on a common-cathode display. Each pin behaves as its own diode. */
+  segmentsLit(
+    id: string,
+    common: string,
+    segments: string[],
+    forwardVolts: number,
+    inputs: Inputs,
+  ): string[] {
+    const { edges, sources } = this.edges(inputs);
+    const c = reach(this.nodeOf(id, common), edges, sources);
+    if (!c) return [];
+    return segments.filter((pin) => {
+      const v = reach(this.nodeOf(id, pin), edges, sources);
+      return !!v && v.volts - c.volts > forwardVolts;
+    });
   }
 
   solve(inputs: Inputs): CircuitSolution {
@@ -176,6 +236,8 @@ export interface Inputs {
   pins: Map<number, PinDrive>;
   pressed: Set<InstanceId>;
   turned: Map<InstanceId, number>;
+  /** Simulated environment values, keyed `instance:channel`. */
+  channels?: Map<string, number>;
 }
 
 export interface CircuitSolution {

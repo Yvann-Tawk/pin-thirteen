@@ -37,3 +37,35 @@ it('rejects duplicate definitions', () => {
   const [first] = registry.all();
   expect(() => new Registry([first!, first!])).toThrow();
 });
+
+it('COMPONENTS.md matches the registry', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { join } = await import('node:path');
+  const { CATALOG } = await import('./catalog');
+  const lines = [
+    '# Components',
+    '',
+    'Generated from the registry. `registry.test.ts` fails if this file drifts.',
+    '',
+    '## Supported',
+    '',
+    '| Part | Educational engine | Note |',
+    '| --- | --- | --- |',
+    ...registry
+      .all()
+      .map(
+        (d) =>
+          `| ${d.name} | ${d.simulation.educational.level} | ${d.simulation.educational.note} |`,
+      ),
+    '',
+    '## Rest of the kit',
+    '',
+    '| Item | Tier | Status |',
+    '| --- | --- | --- |',
+    ...CATALOG.map((c) => `| ${c.name} | ${c.tier} | ${c.status} |`),
+    '',
+  ].join('\n');
+  const file = join(import.meta.dirname, '../../../COMPONENTS.md');
+  if (process.env.UPDATE_COMPONENTS) (await import('node:fs')).writeFileSync(file, lines);
+  expect(readFileSync(file, 'utf8')).toBe(lines);
+});

@@ -16,6 +16,11 @@ export function runSketch(source: string, micros: number) {
     serialWrite: (t) => void (serial += t),
     serialAvailable: () => 0,
     serialRead: () => -1,
+    tone() {},
+    noTone() {},
+    pulseIn: () => 0,
+    servoAttach() {},
+    servoWrite() {},
   };
   const vm: Vm = new Vm(result.program, host);
   vm.run(micros);

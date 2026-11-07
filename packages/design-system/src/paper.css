@@ -304,6 +304,7 @@ ol.code li.now::after { content: ""; position: absolute; left: 64px; top: 7px; w
 }
 
 /* ---------- APP ADDITIONS ---------- */
+.kit .cards { overflow-y: auto; grid-auto-rows: minmax(150px, 1fr); padding: 4px; }
 .lessons { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; margin: 0; padding: 0; list-style: none; }
 .lesson-card { position: relative; display: block; width: 100%; min-height: 104px; padding: 12px; text-align: left; background: var(--grain), var(--palette-4); box-shadow: var(--lift-1); transition: transform var(--fast) var(--ease); }
 .lessons li:nth-child(3n+2) .lesson-card { background: var(--grain), var(--palette-5); }

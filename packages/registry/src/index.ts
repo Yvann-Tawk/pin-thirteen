@@ -3,12 +3,14 @@ import { breadboard830 } from './components/breadboard-830';
 import { led5mm } from './components/led-5mm';
 import { potentiometer } from './components/potentiometer';
 import { pushButton } from './components/push-button';
+import { EXPANSION } from './components/expansion';
 import { resistor } from './components/resistor';
 import { unoR3 } from './components/uno-r3';
 import type { ComponentDefinition } from './types';
 
 export * from './types';
 export * from './geometry';
+export * from './catalog';
 
 export class Registry {
   private readonly byId = new Map<ComponentTypeId, ComponentDefinition>();
@@ -36,4 +38,5 @@ export const registry = new Registry([
   resistor,
   pushButton,
   potentiometer,
+  ...EXPANSION,
 ]);
