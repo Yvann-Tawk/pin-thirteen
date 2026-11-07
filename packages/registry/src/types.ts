@@ -48,9 +48,13 @@ export interface ComponentDefinition {
   specs: Spec[];
   params: ParamDefinition[];
   pins: PinDefinition[];
+  /** Groups of pins joined inside the part, such as breadboard strips. */
+  connectivity?: PinId[][];
   constraints: ElectricalConstraint[];
   /** Key into the UI's art table. The registry holds no drawing code. */
   art: string;
+  /** Other parts can seat their pins in this component's holes. */
+  isBoard?: boolean;
   simulation: Record<EngineId, SupportEntry>;
   provenance: { hardwareTested: boolean; sources: string[] };
 }

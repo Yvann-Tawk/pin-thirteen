@@ -32,6 +32,9 @@ const projectSchema = z
             position: point,
             rotation: z.union([z.literal(0), z.literal(90), z.literal(180), z.literal(270)]),
             params: z.record(z.string(), paramValue),
+            placement: z
+              .object({ board: z.string().min(1), pins: z.record(z.string(), z.string()) })
+              .optional(),
           }),
         )
         .max(500),

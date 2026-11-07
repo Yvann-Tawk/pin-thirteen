@@ -1,7 +1,10 @@
 import { registry, type ComponentDefinition } from '@pin-thirteen/registry';
-import { useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { BACKDROP_SVG, DEFS_SVG, UNO_SVG } from './art/generated';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { Art } from './Art';
+import { DEFS_SVG } from './art/generated';
 import { highlight } from './highlight';
+import { Inspector } from './Inspector';
+import { Stage } from './Stage';
 import { useApp } from './store';
 
 type View = 'play' | 'kit' | 'exp' | 'code' | 'set';
@@ -38,92 +41,28 @@ const CHAPTERS: { view: View; label: string; icon: ReactNode }[] = [
   },
 ];
 
-function Art({ definition }: { definition: ComponentDefinition }) {
-  if (definition.art === 'uno-r3') {
-    return (
-      <>
-        <g dangerouslySetInnerHTML={{ __html: UNO_SVG }} />
-        {definition.pins.map((pin) => (
-          <g key={pin.id}>
-            <rect
-              x={pin.position.x - 2.5}
-              y={pin.position.y - 2.5}
-              width="5"
-              height="5"
-              fill="#e1d397"
-            >
-              <title>{pin.id}</title>
-            </rect>
-            <text
-              className="pin-label"
-              textAnchor={pin.position.y < 100 ? 'end' : 'start'}
-              transform={`translate(${pin.position.x + 2.5} ${pin.position.y + (pin.position.y < 100 ? 16 : -16)}) rotate(-90)`}
-            >
-              {pin.label}
-            </text>
-          </g>
-        ))}
-      </>
-    );
-  }
-  return <use href={definition.art === 'led-5mm' ? '#d-led' : '#d-res'} />;
-}
-
-function Stage() {
-  const doc = useApp((s) => s.history.present);
-  const selected = useApp((s) => s.selected);
-  const select = useApp((s) => s.select);
-  const remove = useApp((s) => s.remove);
-  return (
-    <svg
-      className="stage"
-      viewBox="0 0 1000 620"
-      preserveAspectRatio="xMidYMid slice"
-      aria-label="Circuit workspace"
-      onClick={() => select(null)}
-    >
-      <g dangerouslySetInnerHTML={{ __html: BACKDROP_SVG }} />
-      {doc.components.map((c) => {
-        const definition = registry.get(c.type);
-        if (!definition) return null;
-        return (
-          <g
-            key={c.id}
-            transform={`translate(${c.position.x} ${c.position.y}) rotate(${c.rotation})`}
-          >
-            <g
-              className={`part${selected === c.id ? ' sel' : ''}`}
-              data-part={c.type}
-              tabIndex={0}
-              role="button"
-              aria-label={definition.name}
-              aria-pressed={selected === c.id}
-              onClick={(e) => {
-                e.stopPropagation();
-                select(c.id);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  select(c.id);
-                }
-                if (e.key === 'Delete' || e.key === 'Backspace') remove(c.id);
-              }}
-            >
-              <Art definition={definition} />
-            </g>
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
-
 function Toolbar() {
   const s = useApp();
   const input = useRef<HTMLInputElement>(null);
   return (
     <div className="toolbar" role="toolbar" aria-label="Project tools">
+      <button
+        className="tool"
+        aria-label="Zoom in"
+        onClick={() => s.zoomAt(1.25, { x: 500, y: 310 })}
+      >
+        +
+      </button>
+      <button
+        className="tool"
+        aria-label="Zoom out"
+        onClick={() => s.zoomAt(0.8, { x: 500, y: 310 })}
+      >
+        −
+      </button>
+      <button className="tool" onClick={s.fitView}>
+        Fit
+      </button>
       <button className="tool" disabled={!s.history.past.length} onClick={s.undo}>
         Undo
       </button>
@@ -133,11 +72,6 @@ function Toolbar() {
       <button className="tool" onClick={s.reset}>
         Reset
       </button>
-      {s.selected && (
-        <button className="tool" onClick={() => s.remove(s.selected!)}>
-          Remove
-        </button>
-      )}
       <button className="tool" onClick={() => input.current?.click()}>
         Import
       </button>
@@ -163,28 +97,12 @@ function Toolbar() {
   );
 }
 
-function Bubble() {
-  const doc = useApp((s) => s.history.present);
-  const selected = useApp((s) => s.selected);
-  const type = doc.components.find((c) => c.id === selected)?.type;
-  const definition = type ? registry.get(type) : undefined;
-  if (!definition) return null;
-  return (
-    <div className="bubble" role="status" style={{ left: '38%', top: '3%' }}>
-      <b>{definition.name}</b>
-      <span>{definition.description}</span>
-    </div>
-  );
-}
-
 function Card({ definition, index }: { definition: ComponentDefinition; index: number }) {
   const place = useApp((s) => s.place);
   const box =
-    definition.art === 'uno-r3'
-      ? '-28 -8 440 306'
-      : definition.art === 'led-5mm'
-        ? '-34 -38 68 96'
-        : '-68 -30 136 60';
+    { 'uno-r3': '-28 -8 440 306', 'led-5mm': '-34 -38 68 96', 'breadboard-830': '-4 -30 916 250' }[
+      definition.art
+    ] ?? '-68 -30 136 60';
   return (
     <button
       className="card"
@@ -265,6 +183,19 @@ function CodeLab() {
 }
 
 export function App() {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const s = useApp.getState();
+      if (e.key === 'Escape') s.cancelDraft();
+      const typing = (e.target as Element).closest('input, select, textarea');
+      if (typing || !(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 'z') return;
+      e.preventDefault();
+      if (e.shiftKey) s.redo();
+      else s.undo();
+    };
+    addEventListener('keydown', onKey);
+    return () => removeEventListener('keydown', onKey);
+  }, []);
   const [view, setView] = useState<View>('play');
   const [dealt, setDealt] = useState(0);
   const status = useApp((s) => s.status);
@@ -319,7 +250,7 @@ export function App() {
             </h1>
           </div>
           <Stage />
-          <Bubble />
+          <Inspector />
           <p className="status" role="status">
             {status}
           </p>

@@ -16,6 +16,13 @@ export interface ComponentInstance {
   position: Point;
   rotation: Rotation;
   params: Record<string, ParamValue>;
+  /** Set when the component's pins sit in a breadboard's holes. */
+  placement?: BoardPlacement;
+}
+
+export interface BoardPlacement {
+  board: InstanceId;
+  pins: Record<PinId, PinId>;
 }
 
 export interface Endpoint {

@@ -67,6 +67,7 @@ export const unoR3: ComponentDefinition = {
     ]),
     ...row(273, 273, [0, 1, 2, 3, 4, 5].map(analog)),
   ],
+  connectivity: [['GND_TOP', 'GND_1', 'GND_2']],
   constraints: [
     { id: 'pin-current', description: 'Keep each I/O pin well below the 40 mA absolute maximum.' },
     { id: 'logic-voltage', description: 'I/O pins must stay between 0 V and 5 V.' },

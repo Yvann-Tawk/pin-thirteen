@@ -1,10 +1,12 @@
 import type { ComponentTypeId } from '@pin-thirteen/circuit-core';
+import { breadboard830 } from './components/breadboard-830';
 import { led5mm } from './components/led-5mm';
 import { resistor } from './components/resistor';
 import { unoR3 } from './components/uno-r3';
 import type { ComponentDefinition } from './types';
 
 export * from './types';
+export * from './geometry';
 
 export class Registry {
   private readonly byId = new Map<ComponentTypeId, ComponentDefinition>();
@@ -25,4 +27,4 @@ export class Registry {
   }
 }
 
-export const registry = new Registry([unoR3, led5mm, resistor]);
+export const registry = new Registry([unoR3, breadboard830, led5mm, resistor]);
