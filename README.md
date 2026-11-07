@@ -2,7 +2,7 @@
 
 A browser-based, open-source playground for learning electronics, drawn like a comic book made of paper. Compatible with Arduino sketches.
 
-**Status: early development.** You can build circuits on an 830-point breadboard, wire pins, inspect connections, and save or export projects. Simulation is not built yet, so Run is disabled.
+**Status: early development.** Build a circuit, write a sketch, and run it in the educational simulator. Lessons are not built yet. See [what sketches can use](docs/sketch-subset.md).
 
 ## Run it
 

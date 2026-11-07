@@ -16,13 +16,17 @@ export const led5mm: ComponentDefinition = {
     { id: 'anode', label: '+', role: 'passive', position: { x: -6, y: 52 }, note: 'Long leg.' },
     { id: 'cathode', label: '-', role: 'passive', position: { x: 7, y: 42 }, note: 'Short leg.' },
   ],
+  electrical: { kind: 'diode', anode: 'anode', cathode: 'cathode', forwardVolts: 2 },
   constraints: [
     { id: 'polarity', description: 'Current only flows from anode to cathode.' },
     { id: 'current-limit', description: 'Needs a series resistor to limit current.' },
   ],
   art: 'led-5mm',
   simulation: {
-    educational: { level: 'planned', note: 'Arrives with the educational engine in Phase 3.' },
+    educational: {
+      level: 'approximate',
+      note: 'Fixed forward voltage. Brightness follows estimated current and PWM duty.',
+    },
     avr: { level: 'planned', note: 'Planned for Phase 7.' },
   },
   provenance: { hardwareTested: false, sources: [] },

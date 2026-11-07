@@ -1,6 +1,8 @@
 import type { ComponentTypeId } from '@pin-thirteen/circuit-core';
 import { breadboard830 } from './components/breadboard-830';
 import { led5mm } from './components/led-5mm';
+import { potentiometer } from './components/potentiometer';
+import { pushButton } from './components/push-button';
 import { resistor } from './components/resistor';
 import { unoR3 } from './components/uno-r3';
 import type { ComponentDefinition } from './types';
@@ -27,4 +29,11 @@ export class Registry {
   }
 }
 
-export const registry = new Registry([unoR3, breadboard830, led5mm, resistor]);
+export const registry = new Registry([
+  unoR3,
+  breadboard830,
+  led5mm,
+  resistor,
+  pushButton,
+  potentiometer,
+]);

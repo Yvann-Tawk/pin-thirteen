@@ -44,8 +44,3 @@ test('exports a file that imports back, and refuses a bad file', async ({ page }
   });
   await expect(page.getByText('This file is not valid JSON.')).toBeVisible();
 });
-
-test('does not offer a fake run', async ({ page }) => {
-  await page.goto('/');
-  await expect(page.getByRole('button', { name: 'Run' })).toBeDisabled();
-});

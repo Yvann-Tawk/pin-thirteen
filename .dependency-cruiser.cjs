@@ -5,13 +5,17 @@ module.exports = {
       name: 'core-is-pure',
       severity: 'error',
       from: { path: '^packages/circuit-core' },
-      to: { path: '^(apps|packages/(registry|design-system))|node_modules/(react|idb|zustand)' },
+      to: {
+        path: '^(apps|packages/(registry|design-system|sim-core|sim-edu|validation))|node_modules/(react|idb|zustand)',
+      },
     },
     {
       name: 'registry-no-ui',
       severity: 'error',
       from: { path: '^packages/registry' },
-      to: { path: '^(apps|packages/design-system)|node_modules/(react|idb|zustand)' },
+      to: {
+        path: '^(apps|packages/(design-system|sim-core|sim-edu|validation))|node_modules/(react|idb|zustand)',
+      },
     },
     {
       name: 'packages-no-app',

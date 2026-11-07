@@ -90,10 +90,7 @@ export function Inspector() {
           );
         return others.length
           ? [
-              `${pin.label}: ${others
-                .map(([i, p]) => label(i, p))
-                .slice(0, 4)
-                .join(', ')}`,
+              `${pin.label}: ${[...new Set(others.map(([i, p]) => label(i, p)))].slice(0, 4).join(', ')}`,
             ]
           : [];
       });
@@ -123,6 +120,31 @@ export function Inspector() {
           {line}
         </p>
       ))}
+      {definition.interaction?.kind === 'turn' && (
+        <label>
+          Position
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={s.turned[component.id] ?? 0.5}
+            onChange={(e) => s.turn(component.id, Number(e.target.value))}
+          />
+        </label>
+      )}
+      {definition.interaction?.kind === 'press' && s.running && (
+        <button
+          className="tool"
+          onPointerDown={() => s.press(component.id, true)}
+          onPointerUp={() => s.press(component.id, false)}
+          onPointerLeave={() => s.press(component.id, false)}
+          onKeyDown={(e) => e.key === ' ' && s.press(component.id, true)}
+          onKeyUp={(e) => e.key === ' ' && s.press(component.id, false)}
+        >
+          Hold to press
+        </button>
+      )}
       <WireForm from={component.id} />
       <div className="row">
         {!definition.isBoard && (

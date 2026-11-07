@@ -11,6 +11,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 import { Art } from './Art';
@@ -71,9 +72,11 @@ export function Stage() {
   const selected = useApp((s) => s.selected);
   const draft = useApp((s) => s.draft);
   const view = useApp((s) => s.view);
+  const sim = useApp((s) => s.sim);
   const svg = useRef<SVGSVGElement>(null);
   const world = useRef<SVGGElement>(null);
   const gesture = useRef<Gesture | null>(null);
+  const held = useRef<string | null>(null);
   const [offset, setOffset] = useState({ id: null as string | null, dx: 0, dy: 0 });
   const [hover, setHover] = useState<PinHit | null>(null);
   const [cursor, setCursor] = useState<Point | null>(null);
@@ -117,6 +120,11 @@ export function Stage() {
     if (part) {
       const id = part.dataset.instance!;
       s.select(id);
+      if (s.running && part.dataset.part === 'push-button') {
+        s.press(id, true);
+        held.current = id;
+        return;
+      }
       const c = doc.components.find((x) => x.id === id)!;
       gesture.current = { kind: 'drag', id, start: point, moved: false, origin: c.position };
       return;
@@ -155,6 +163,8 @@ export function Stage() {
   };
 
   const onPointerUp = () => {
+    if (held.current) useApp.getState().press(held.current, false);
+    held.current = null;
     const g = gesture.current;
     gesture.current = null;
     if (g?.kind === 'drag' && g.moved) {
@@ -188,8 +198,12 @@ export function Stage() {
         {shown.components.map((c) => {
           const definition = registry.get(c.type);
           if (!definition) return null;
+          const brightness = sim?.components[c.id]?.brightness ?? 0;
+          const lit =
+            brightness > 0 || (definition.category === 'board' && (sim?.builtinLed ?? 0) > 0);
           const classes = [
             'part',
+            lit && 'is-lit',
             definition.isBoard && 'flat',
             selected === c.id && 'sel',
             offset.id === c.id && 'dragging',
@@ -203,6 +217,10 @@ export function Stage() {
                 className={classes.filter(Boolean).join(' ')}
                 data-instance={c.id}
                 data-part={c.type}
+                data-lit={lit ? 'true' : 'false'}
+                style={
+                  brightness > 0 ? ({ '--lens': 'var(--palette-4)' } as CSSProperties) : undefined
+                }
                 data-seated={c.placement ? Object.values(c.placement.pins).join(' ') : undefined}
                 tabIndex={0}
                 role="button"
@@ -230,6 +248,21 @@ export function Stage() {
               >
                 <Art definition={definition} />
               </g>
+            </g>
+          );
+        })}
+        {shown.components.map((c) => {
+          const brightness = sim?.components[c.id]?.brightness ?? 0;
+          if (brightness <= 0) return null;
+          return (
+            <g
+              key={c.id}
+              className="glow"
+              opacity={0.25 + 0.75 * brightness}
+              transform={`translate(${c.position.x} ${c.position.y - 16})`}
+            >
+              <circle r="34" fill="#ffee9a" opacity="0.65" />
+              <circle r="34" fill="url(#dots-paper)" />
             </g>
           );
         })}

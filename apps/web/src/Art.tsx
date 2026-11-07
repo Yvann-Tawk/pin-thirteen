@@ -53,7 +53,18 @@ export function Art({ definition }: { definition: ComponentDefinition }) {
       </>
     );
   }
-  return <use href={definition.art === 'led-5mm' ? '#d-led' : '#d-res'} />;
+  if (definition.art === 'potentiometer') {
+    return (
+      <>
+        <path className="ink" d="M-13.6 14V34M0 14V34M13.6 14V34" fill="none" strokeWidth="3.2" />
+        <rect className="ink" x="-22" y="-22" width="44" height="38" fill="#acd5ff" />
+        <circle className="ink" cy="-4" r="15" fill="#fbf6e8" />
+        <path className="ink" d="M0 -4V-17" strokeWidth="3.4" />
+      </>
+    );
+  }
+  const href = { 'led-5mm': '#d-led', resistor: '#d-res', 'push-button': '#d-btn' }[definition.art];
+  return <use href={href} />;
 }
 
 export const nameOf = (type: string) => registry.get(type)?.name ?? type;

@@ -14,10 +14,11 @@ export const resistor: ComponentDefinition = {
     { id: 'a', label: '1', role: 'passive', position: { x: -54, y: 0 } },
     { id: 'b', label: '2', role: 'passive', position: { x: 54, y: 0 } },
   ],
+  electrical: { kind: 'resistor', a: 'a', b: 'b', ohmsParam: 'resistanceOhms' },
   constraints: [],
   art: 'resistor',
   simulation: {
-    educational: { level: 'planned', note: 'Arrives with the educational engine in Phase 3.' },
+    educational: { level: 'approximate', note: 'Series paths only. Power rating is not modelled.' },
     avr: { level: 'planned', note: 'Planned for Phase 7.' },
   },
   provenance: { hardwareTested: false, sources: [] },

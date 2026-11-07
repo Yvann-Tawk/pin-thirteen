@@ -25,20 +25,12 @@ import {
   type Project,
 } from '@pin-thirteen/circuit-core';
 import { registry, seatOnBoard } from '@pin-thirteen/registry';
+import type { ComponentInput, SimulationState } from '@pin-thirteen/sim-core';
+import { compile, type Diagnostic } from '@pin-thirteen/sim-edu';
 import { create } from 'zustand';
+import { EXAMPLES } from './examples';
 import { loadLatestProject, saveProject } from './persistence';
-
-export const BLINK_SKETCH = `void setup() {
-  pinMode(LED_BUILTIN, OUTPUT);
-}
-
-void loop() {
-  digitalWrite(LED_BUILTIN, HIGH);
-  delay(1000);
-  digitalWrite(LED_BUILTIN, LOW);
-  delay(1000);
-}
-`;
+import type { WorkerRequest, WorkerResponse } from './sim-protocol';
 
 const newId = () => crypto.randomUUID();
 
@@ -87,6 +79,17 @@ interface AppState {
   draft: Endpoint | null;
   view: { zoom: number; x: number; y: number };
   status: string;
+  problem: Diagnostic | null;
+  sim: SimulationState | null;
+  running: boolean;
+  serial: string;
+  turned: Record<string, number>;
+  setSketch(sketch: string): void;
+  run(): void;
+  stop(): void;
+  press(id: string, pressed: boolean): void;
+  turn(id: string, position: number): void;
+  sendSerial(text: string): void;
   init(): Promise<void>;
   place(type: ComponentTypeId): void;
   remove(id: string): void;
@@ -129,18 +132,65 @@ const fromProject = (p: Project) => ({
   draft: null,
 });
 
+let worker: Worker | null = null;
+const post = (message: WorkerRequest) => worker?.postMessage(message);
+const SERIAL_LIMIT = 20_000;
+
 export const useApp = create<AppState>((set, get) => {
   const run = (command: Command) => set((s) => ({ history: execute(s.history, command) }));
   return {
     projectId: newId(),
     projectName: 'My first circuit',
-    sketch: BLINK_SKETCH,
+    sketch: EXAMPLES[0]!.sketch,
     history: startHistory(starterCircuit()),
     selected: null,
     selectedWire: null,
     draft: null,
     view: FIT,
     status: '',
+    problem: null,
+    sim: null,
+    running: false,
+    serial: '',
+    turned: {},
+    setSketch: (sketch) => set({ sketch, problem: null }),
+    run() {
+      const { sketch, history, turned } = get();
+      const result = compile(sketch);
+      if (!result.ok) {
+        const problem = result.diagnostics[0] ?? null;
+        set({ problem, status: problem ? `Line ${problem.line}: ${problem.message}` : '' });
+        return;
+      }
+      worker?.terminate();
+      worker = new Worker(new URL('./sim.worker.ts', import.meta.url), { type: 'module' });
+      worker.onmessage = ({ data }: MessageEvent<WorkerResponse>) => {
+        set((s) => ({
+          sim: data.state,
+          serial: (s.serial + data.serial).slice(-SERIAL_LIMIT),
+        }));
+      };
+      const inputs: ComponentInput[] = Object.entries(turned).map(([instance, position]) => ({
+        instance,
+        kind: 'turn',
+        position,
+      }));
+      post({ type: 'start', circuit: history.present, sketch, inputs });
+      set({ running: true, problem: null, serial: '', status: 'Running.' });
+    },
+    stop() {
+      // Terminating the worker works however the sketch is behaving.
+      worker?.terminate();
+      worker = null;
+      set({ running: false, sim: null, status: 'Stopped.' });
+    },
+    press: (instance, pressed) =>
+      post({ type: 'input', input: { instance, kind: 'press', pressed } }),
+    turn(instance, position) {
+      set((s) => ({ turned: { ...s.turned, [instance]: position } }));
+      post({ type: 'input', input: { instance, kind: 'turn', position } });
+    },
+    sendSerial: (text) => post({ type: 'serial', text }),
     async init() {
       try {
         const saved = await loadLatestProject();
@@ -267,4 +317,11 @@ export const useApp = create<AppState>((set, get) => {
       set({ ...fromProject(parsed.project), status: `Opened ${parsed.project.name}.` });
     },
   };
+});
+
+// A circuit edit reaches a running sketch at once, so pulling a wire really breaks the circuit.
+useApp.subscribe((state, previous) => {
+  if (state.running && state.history.present !== previous.history.present) {
+    post({ type: 'circuit', circuit: state.history.present });
+  }
 });

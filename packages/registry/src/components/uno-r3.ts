@@ -7,6 +7,7 @@ const digital = (n: number, pwm = false): Omit<PinDefinition, 'position'> => ({
   id: `D${n}`,
   label: String(n),
   role: 'digital',
+  gpio: n,
   ...(pwm ? { pwm } : {}),
 });
 
@@ -14,6 +15,7 @@ const analog = (n: number): Omit<PinDefinition, 'position'> => ({
   id: `A${n}`,
   label: `A${n}`,
   role: 'analog',
+  gpio: 14 + n,
 });
 
 export const unoR3: ComponentDefinition = {
@@ -38,7 +40,7 @@ export const unoR3: ComponentDefinition = {
       { id: 'SCL', label: 'SCL', role: 'digital' },
       { id: 'SDA', label: 'SDA', role: 'digital' },
       { id: 'AREF', label: 'AREF', role: 'reference' },
-      { id: 'GND_TOP', label: 'GND', role: 'ground' },
+      { id: 'GND_TOP', label: 'GND', role: 'ground', volts: 0 },
       digital(13),
       digital(12),
       digital(11, true),
@@ -59,10 +61,10 @@ export const unoR3: ComponentDefinition = {
     ...row(273, 157, [
       { id: 'IOREF', label: 'IOREF', role: 'reference' },
       { id: 'RESET', label: 'RST', role: 'reset' },
-      { id: '3V3', label: '3V3', role: 'power' },
-      { id: '5V', label: '5V', role: 'power' },
-      { id: 'GND_1', label: 'GND', role: 'ground' },
-      { id: 'GND_2', label: 'GND', role: 'ground' },
+      { id: '3V3', label: '3V3', role: 'power', volts: 3.3 },
+      { id: '5V', label: '5V', role: 'power', volts: 5 },
+      { id: 'GND_1', label: 'GND', role: 'ground', volts: 0 },
+      { id: 'GND_2', label: 'GND', role: 'ground', volts: 0 },
       { id: 'VIN', label: 'VIN', role: 'power' },
     ]),
     ...row(273, 273, [0, 1, 2, 3, 4, 5].map(analog)),
@@ -74,7 +76,10 @@ export const unoR3: ComponentDefinition = {
   ],
   art: 'uno-r3',
   simulation: {
-    educational: { level: 'planned', note: 'Arrives with the educational engine in Phase 3.' },
+    educational: {
+      level: 'partial',
+      note: 'Runs the supported sketch subset. Timing is approximate.',
+    },
     avr: { level: 'planned', note: 'Planned for Phase 7.' },
   },
   provenance: { hardwareTested: false, sources: ['ATmega328P datasheet'] },

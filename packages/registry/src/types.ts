@@ -14,6 +14,10 @@ export interface PinDefinition {
   note?: string;
   /** Only UNO pins with hardware PWM set this. */
   pwm?: boolean;
+  /** Arduino pin number, for programmable pins. A0 is 14. */
+  gpio?: number;
+  /** Fixed supply voltage, for power and ground pins. */
+  volts?: number;
 }
 
 export interface Spec {
@@ -33,6 +37,15 @@ export interface ElectricalConstraint {
   description: string;
 }
 
+/** How a part behaves in the circuit solver. New parts add data here, not special cases. */
+export type ElectricalModel =
+  | { kind: 'resistor'; a: PinId; b: PinId; ohmsParam: string }
+  | { kind: 'diode'; anode: PinId; cathode: PinId; forwardVolts: number }
+  | { kind: 'switch'; a: PinId; b: PinId }
+  | { kind: 'divider'; endA: PinId; endB: PinId; wiper: PinId; ohmsParam: string };
+
+export type Interaction = { kind: 'press' } | { kind: 'turn' };
+
 export interface SupportEntry {
   level: SupportLevel;
   note: string;
@@ -50,6 +63,8 @@ export interface ComponentDefinition {
   pins: PinDefinition[];
   /** Groups of pins joined inside the part, such as breadboard strips. */
   connectivity?: PinId[][];
+  electrical?: ElectricalModel;
+  interaction?: Interaction;
   constraints: ElectricalConstraint[];
   /** Key into the UI's art table. The registry holds no drawing code. */
   art: string;

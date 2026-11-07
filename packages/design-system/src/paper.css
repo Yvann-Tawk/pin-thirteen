@@ -304,6 +304,23 @@ ol.code li.now::after { content: ""; position: absolute; left: 64px; top: 7px; w
 }
 
 /* ---------- APP ADDITIONS ---------- */
+.editor { height: 100%; }
+.editor .cm-editor { height: 100%; }
+.pane[hidden] { display: none; }
+.pane::before { display: none; }
+.serial { padding: 0 16px 0 40px; }
+.serial-send { display: flex; gap: 8px; align-items: end; padding: 8px 16px 8px 40px; font: 700 12px var(--ui); }
+.serial-send label { flex: 1; }
+.serial-send input { display: block; width: 100%; height: 30px; font: 400 13px var(--mono); background: var(--paper); border: var(--line-2) solid var(--ink); }
+.examples { display: block; font: 700 12px var(--ui); }
+.examples select { display: block; width: 100%; height: 28px; font: 500 12px var(--ui); color: var(--ink); background: var(--paper); border: var(--line-2) solid var(--ink); }
+.findings { flex: 1; min-height: 0; overflow: auto; margin: 8px 0; padding: 0; list-style: none; font: 500 13px/1.2 var(--hand); }
+.findings li { margin-bottom: 6px; padding-left: 7px; border-left: 4px solid var(--edge-dark); }
+.findings li[data-severity="error"] { border-left-color: var(--ink); }
+.findings li[data-severity="hazard"] { border-left-color: var(--palette-1); }
+.findings b { font: 800 11px var(--ui); text-transform: uppercase; }
+.glow { pointer-events: none; }
+.controls { margin-top: 0; }
 .stage { touch-action: none; }
 .part.flat, .part.flat:hover, .part.flat:focus-visible, .part.dragging, .part.dragging:hover { filter: none; transform: none; }
 .part.flat.sel { outline: 3px solid var(--palette-1); }
@@ -331,5 +348,5 @@ ol.code li.now::after { content: ""; position: absolute; left: 64px; top: 7px; w
 .status:empty { display: none; }
 .pin-label { font: 600 7px var(--mono); fill: var(--ink); }
 .pane-note { padding: 0 16px 0 90px; font: 500 15px/24px var(--hand); }
-.press:disabled { opacity: .55; box-shadow: 1px 1px 0 var(--ink); }
+.press:disabled { opacity: .55; cursor: default; box-shadow: 1px 1px 0 var(--ink); }
 @media (max-width: 760px) { .toolbar { position: static; max-width: none; padding: 8px; } .status { position: static; max-width: none; margin: 8px; } .stage { height: auto; } }

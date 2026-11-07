@@ -5,6 +5,9 @@ Dependencies point downward only. `pnpm boundaries` enforces this in CI.
 ```text
 apps/web                 React UI, store, IndexedDB, art
 packages/design-system   Paper and ink CSS
+packages/validation      Circuit checks: error, hazard, limitation
+packages/sim-edu         Sketch compiler, bytecode VM, educational engine
+packages/sim-core        Engine contracts and the circuit solver
 packages/registry        Component definitions, no drawing or UI code
 packages/circuit-core    Pure document, commands, history, project files
 ```
@@ -14,3 +17,8 @@ packages/circuit-core    Pure document, commands, history, project files
 - **Hole hit-testing is arithmetic.** `findPinAt` searches pin positions, so holes are not DOM nodes.
 - **Project files are untrusted.** `parseProject` validates everything, and each schema change needs a migration.
 - **Behaviour lives in the registry.** Application code should not branch on a component type, other than choosing art.
+- **Sketches never run as JavaScript.** `sim-edu` parses to bytecode, and the VM's only exits are the `ArduinoHost` methods. It runs in a Web Worker, which Stop terminates.
+- **Time is virtual.** `advance()` makes runs deterministic, and a busy loop only spends virtual time.
+- **The solver is an estimate.** It follows the lowest-resistance path from a node to a source. It does not solve general networks, so parallel paths and series LEDs are approximate.
+- **Behaviour comes from `electrical` data** in each component definition, not from type checks.
+- **Conformance:** `tests/conformance` holds output from real avr-gcc on avr8js, and `sim-edu` must match it exactly.

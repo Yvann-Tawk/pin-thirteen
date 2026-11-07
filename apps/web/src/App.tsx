@@ -1,8 +1,10 @@
 import { registry, type ComponentDefinition } from '@pin-thirteen/registry';
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { validate } from '@pin-thirteen/validation';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Art } from './Art';
 import { DEFS_SVG } from './art/generated';
-import { highlight } from './highlight';
+import { Editor } from './Editor';
+import { EXAMPLES } from './examples';
 import { Inspector } from './Inspector';
 import { Stage } from './Stage';
 import { useApp } from './store';
@@ -121,9 +123,49 @@ function Card({ definition, index }: { definition: ComponentDefinition; index: n
   );
 }
 
+function Findings() {
+  const doc = useApp((s) => s.history.present);
+  const sim = useApp((s) => s.sim);
+  const problem = useApp((s) => s.problem);
+  const findings = useMemo(() => validate(doc, registry), [doc]);
+  const label = { error: 'Error', hazard: 'Hazard', limitation: 'Limit' };
+  return (
+    <ul className="findings" aria-label="Circuit and sketch checks">
+      {problem && (
+        <li data-severity={problem.kind === 'unsupported' ? 'limitation' : 'error'}>
+          <b>Line {problem.line}</b> {problem.message}
+        </li>
+      )}
+      {sim?.fault && (
+        <li data-severity="error">
+          <b>Line {sim.fault.line}</b> {sim.fault.message}
+        </li>
+      )}
+      {sim?.notices.map((n) => (
+        <li key={n} data-severity="hazard">
+          <b>Note</b> {n}
+        </li>
+      ))}
+      {findings.map((f) => (
+        <li key={f.id + (f.instance ?? '')} data-severity={f.severity} data-finding={f.id}>
+          <b>{label[f.severity]}</b> {f.message}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function CodeLab() {
   const sketch = useApp((s) => s.sketch);
+  const setSketch = useApp((s) => s.setSketch);
+  const serial = useApp((s) => s.serial);
+  const problem = useApp((s) => s.problem);
+  const running = useApp((s) => s.running);
+  const run = useApp((s) => s.run);
+  const stop = useApp((s) => s.stop);
+  const sendSerial = useApp((s) => s.sendSerial);
   const [tab, setTab] = useState<'code' | 'serial'>('code');
+  const [line, setLine] = useState('');
   return (
     <section className="lab" aria-label="Code Lab">
       <div className="lab-tabs" role="tablist" aria-label="Code Lab views">
@@ -145,34 +187,52 @@ function CodeLab() {
         </button>
       </div>
       <div className="sheet">
-        {tab === 'code' ? (
-          <div className="pane" tabIndex={0} role="tabpanel" aria-label="Sketch">
-            <ol className="code">
-              {sketch
-                .trimEnd()
-                .split('\n')
-                .map((line, i) => (
-                  <li key={i}>{line ? highlight(line) : ' '}</li>
-                ))}
-            </ol>
-          </div>
-        ) : (
-          <div className="pane" tabIndex={0} role="tabpanel" aria-label="Serial output">
-            <p className="pane-note">No serial output. Nothing is simulated yet.</p>
-          </div>
-        )}
+        <div className="pane" role="tabpanel" aria-label="Sketch" hidden={tab !== 'code'}>
+          <Editor value={sketch} onChange={setSketch} problem={problem} />
+        </div>
+        <div className="pane" role="tabpanel" aria-label="Serial output" hidden={tab !== 'serial'}>
+          <pre className="serial" data-testid="serial">
+            {serial || 'Output from Serial.print appears here.'}
+          </pre>
+          <form
+            className="serial-send"
+            onSubmit={(e) => {
+              e.preventDefault();
+              sendSerial(line);
+              setLine('');
+            }}
+          >
+            <label>
+              Send to board
+              <input value={line} disabled={!running} onChange={(e) => setLine(e.target.value)} />
+            </label>
+            <button className="tool" disabled={!running}>
+              Send
+            </button>
+          </form>
+        </div>
         <div className="notes">
-          <p>
-            setup() runs once.
-            <br />
-            loop() never stops.
-          </p>
-          <p>Editing and running arrive with the simulator in Phase 3.</p>
+          <label className="examples">
+            Example
+            <select
+              value=""
+              onChange={(e) => {
+                const found = EXAMPLES.find((x) => x.name === e.target.value);
+                if (found) setSketch(found.sketch);
+              }}
+            >
+              <option value="">Load a sketch...</option>
+              {EXAMPLES.map((x) => (
+                <option key={x.name}>{x.name}</option>
+              ))}
+            </select>
+          </label>
+          <Findings />
           <div className="controls">
-            <button className="press run" disabled>
+            <button className="press run" disabled={running} onClick={run}>
               Run
             </button>
-            <button className="press" disabled>
+            <button className="press" disabled={!running} onClick={stop}>
               Stop
             </button>
           </div>
