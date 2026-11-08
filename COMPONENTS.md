@@ -21,6 +21,8 @@ Generated from the registry. `registry.test.ts` fails if this file drifts.
 | 7-Segment Display | approximate | Common cathode only. The decimal point is not modelled. |
 | Ultrasonic Sensor | approximate | pulseIn returns an exact time from the slider. Trigger pulse timing is not checked. |
 | Servo Motor | approximate | Models the Servo library, not its pulses. The move is instant. |
+| IR LED | approximate | Fixed forward voltage of 1.2 V. Shows a readout instead of a glow. |
+| Relay | approximate | Logic side only. Switching is instant. Never model or wire a mains load. |
 
 ## Rest of the kit
 
@@ -42,10 +44,8 @@ Generated from the registry. `registry.test.ts` fails if this file drifts.
 | Servo mount bracket | R | Reference only |
 | 4×4 matrix keypad | T3 | Planned |
 | 4-channel IR tracking module | T3 | Planned |
-| Relay KY-019 | T3 | Planned: logic side only, never a mains load |
 | DS1302 RTC | T4 | Planned: needs AVR engine |
 | BC547 transistor | T3 | Planned: needs DC solver |
-| IR LED | T3 | Planned |
 | 74HC595N shift register | T3 | Planned |
 | V5.0 Sensor Shield | T3 | Planned |
 | DT830D multimeter | R | Reference article |

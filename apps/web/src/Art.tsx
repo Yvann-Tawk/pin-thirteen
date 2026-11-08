@@ -132,7 +132,12 @@ export function Art({ definition, lit }: { definition: ComponentDefinition; lit?
   if (definition.art === 'module') return <ModuleArt definition={definition} />;
   if (definition.art === 'hc-sr04') return <use href="#d-sonic" />;
   if (definition.art === 'servo') return <use href="#d-servo" />;
-  const href = { 'led-5mm': '#d-led', resistor: '#d-res', 'push-button': '#d-btn' }[definition.art];
+  const href = {
+    'led-5mm': '#d-led',
+    'ir-led': '#d-led',
+    resistor: '#d-res',
+    'push-button': '#d-btn',
+  }[definition.art];
   return <use href={href} />;
 }
 

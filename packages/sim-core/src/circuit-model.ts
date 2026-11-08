@@ -107,6 +107,22 @@ export class CircuitModel {
         edges.push({ a: this.nodeOf(c.id, e.a), b: this.nodeOf(c.id, e.b), ohms: 0 });
       }
     }
+    // A relay's contacts depend on its coil, so they join after the plain edges.
+    const contacts: Edge[] = [];
+    for (const { c, d } of this.components) {
+      const e = d.electrical;
+      if (e?.kind !== 'relay') continue;
+      const signal = this.nodeOf(c.id, e.signal);
+      const on =
+        this.isPowered(c.id, e.vcc, e.gnd, edges, sources) &&
+        (reach(signal, edges, sources)?.volts ?? 0) >= 3;
+      contacts.push({
+        a: this.nodeOf(c.id, e.com),
+        b: this.nodeOf(c.id, on ? e.no : e.nc),
+        ohms: 0,
+      });
+    }
+    edges.push(...contacts);
     for (const { c, d } of this.components) {
       const e = d.electrical;
       if (e?.kind !== 'module') continue;
@@ -155,6 +171,11 @@ export class CircuitModel {
   powered(id: string, vcc: string, gnd: string, inputs: Inputs): boolean {
     const { edges, sources } = this.edges(inputs);
     return this.isPowered(id, vcc, gnd, edges, sources);
+  }
+
+  /** True when two of a part's pins are joined, through wires, contacts or resistors. */
+  connected(id: string, a: string, b: string, inputs: Inputs): boolean {
+    return joined(this.nodeOf(id, a), this.nodeOf(id, b), this.edges(inputs).edges);
   }
 
   /** The Arduino pin wired to a part's pin, through wires or series resistors. */

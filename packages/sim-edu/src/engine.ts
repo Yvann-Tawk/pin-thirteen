@@ -146,6 +146,13 @@ export class EducationalEngine implements SimulationEngine<Program>, ArduinoHost
       } else if (e?.kind === 'segments') {
         const segments = this.model.segmentsLit(c.id, e.common, e.segments, e.forwardVolts, inputs);
         out[c.id] = { brightness: 0, segments };
+      } else if (e?.kind === 'diode' && d.art === 'ir-led') {
+        if ((out[c.id]?.brightness ?? 0) > 0) {
+          out[c.id] = { ...out[c.id]!, brightness: 0, readout: 'Infrared on' };
+        }
+      } else if (e?.kind === 'relay' && this.model.powered(c.id, e.vcc, e.gnd, inputs)) {
+        const closed = this.model.connected(c.id, e.com, e.no, inputs);
+        out[c.id] = { brightness: 0, readout: closed ? 'On: COM–NO' : 'Off: COM–NC' };
       } else if (e?.kind === 'servo' && this.model.powered(c.id, e.vcc, e.gnd, inputs)) {
         const pin = this.model.gpioAt(c.id, e.signal, inputs);
         const servo = [...this.servos.values()].find((s) => s.pin === pin);

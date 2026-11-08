@@ -224,4 +224,37 @@ describe('expanded parts', () => {
     e.advance(1000);
     expect(e.getState().components.d?.segments).toEqual(['b']);
   });
+  it('reports an IR LED without a visible glow', async () => {
+    const I = part('l', 'ir-led');
+    const e = await run(BLINK, doc([uno, R, I], LED_WIRES));
+    e.advance(1000);
+    expect(e.getState().components.l).toMatchObject({ brightness: 0, readout: 'Infrared on' });
+    e.advance(1_000_000);
+    expect(e.getState().components.l?.readout).toBeUndefined();
+  });
+  it('switches an LED through relay contacts', async () => {
+    const K = part('k', 'relay-ky019');
+    const src = (level: string) =>
+      `void setup(){ pinMode(7, OUTPUT); digitalWrite(7, ${level}); } void loop(){}`;
+    const circuit = doc(
+      [uno, K, R, L],
+      [
+        wire('u.D7', 'k.signal'),
+        wire('u.5V', 'k.vcc'),
+        wire('k.gnd', 'u.GND_1'),
+        wire('u.5V', 'k.com'),
+        wire('k.no', 'r.a'),
+        wire('r.b', 'l.anode'),
+        wire('l.cathode', 'u.GND_2'),
+      ],
+    );
+    const on = await run(src('HIGH'), circuit);
+    on.advance(1000);
+    expect(lit(on)).toBe(true);
+    expect(on.getState().components.k?.readout).toBe('On: COM–NO');
+    const off = await run(src('LOW'), circuit);
+    off.advance(1000);
+    expect(lit(off)).toBe(false);
+    expect(off.getState().components.k?.readout).toBe('Off: COM–NC');
+  });
 });

@@ -174,4 +174,47 @@ export const EXPANSION: ComponentDefinition[] = [
     [],
     { category: 'output', art: 'servo' },
   ),
+  module(
+    'ir-led',
+    'IR LED',
+    'IR-LED',
+    'An LED that gives off infrared light, which your eyes cannot see.',
+    [
+      { id: 'anode', label: '+', role: 'passive', position: { x: -6, y: 52 }, note: 'Long leg.' },
+      { id: 'cathode', label: '-', role: 'passive', position: { x: 7, y: 42 }, note: 'Short leg.' },
+    ],
+    { kind: 'diode', anode: 'anode', cathode: 'cathode', forwardVolts: 1.2 },
+    'Fixed forward voltage of 1.2 V. Shows a readout instead of a glow.',
+    [],
+    {
+      category: 'output',
+      art: 'ir-led',
+      constraints: [
+        { id: 'polarity', description: 'Current only flows from anode to cathode.' },
+        { id: 'current-limit', description: 'Needs a series resistor to limit current.' },
+      ],
+    },
+  ),
+  module(
+    'relay-ky019',
+    'Relay',
+    'KY-019',
+    'A switch the Arduino can flip. A HIGH signal connects COM to NO.',
+    [
+      ...row(['S', 'VCC', 'GND']).map((p) => ({ ...p, id: p.id === 's' ? 'signal' : p.id })),
+      ...row(['NC', 'COM', 'NO'], -34),
+    ],
+    {
+      kind: 'relay',
+      signal: 'signal',
+      vcc: 'vcc',
+      gnd: 'gnd',
+      com: 'com',
+      no: 'no',
+      nc: 'nc',
+    },
+    'Logic side only. Switching is instant. Never model or wire a mains load.',
+    [],
+    { category: 'output' },
+  ),
 ];

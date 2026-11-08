@@ -48,7 +48,17 @@ export type ElectricalModel =
   | { kind: 'speaker'; a: PinId; b: PinId }
   | { kind: 'segments'; common: PinId; segments: PinId[]; forwardVolts: number }
   | { kind: 'servo'; signal: PinId; vcc: PinId; gnd: PinId }
-  | { kind: 'ranger'; vcc: PinId; gnd: PinId; trig: PinId; echo: PinId; channel: string };
+  | { kind: 'ranger'; vcc: PinId; gnd: PinId; trig: PinId; echo: PinId; channel: string }
+  /** Active-high relay. Only the low-voltage contacts are modelled. */
+  | {
+      kind: 'relay';
+      signal: PinId;
+      vcc: PinId;
+      gnd: PinId;
+      com: PinId;
+      no: PinId;
+      nc: PinId;
+    };
 
 export interface Channel {
   key: string;

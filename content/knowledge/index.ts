@@ -302,6 +302,41 @@ export const ARTICLES: Article[] = [
     ],
     lessons: [],
   },
+  {
+    id: 'ir-led',
+    part: 'ir-led',
+    title: 'IR LED',
+    what: 'An LED whose light is infrared, just past red.',
+    does: 'Sends invisible light, the way a TV remote does.',
+    how: 'It works like any LED but drops only about 1.2 V. Your eyes cannot see it, but most phone cameras can.',
+    applications: ['Remote controls', 'Beam-break detectors'],
+    wiring: 'Pin to a 220 Ω resistor, resistor to the long leg, short leg to GND.',
+    code: 'digitalWrite(3, HIGH);',
+    mistakes: ['Thinking it is broken because it looks dark', 'Leaving out the resistor'],
+    troubleshooting: ['Point a phone camera at it: a working IR LED shows as a faint purple glow.'],
+    lessons: [],
+  },
+  {
+    id: 'relay-ky019',
+    part: 'relay-ky019',
+    title: 'Relay module (KY-019)',
+    what: 'An electrically controlled switch on a small board.',
+    does: 'Lets a weak Arduino signal open and close a separate circuit.',
+    how: 'A HIGH signal powers a small coil, and the coil pulls a contact from NC (normally closed) over to NO (normally open). COM is the moving contact.',
+    applications: ['Switching a motor or lamp on its own low-voltage supply'],
+    wiring:
+      'S to a pin, VCC to 5V, GND to GND. Put the circuit you want to switch through COM and NO.',
+    code: 'digitalWrite(7, HIGH); // COM joins NO',
+    mistakes: [
+      'Mixing up NO and NC, so the load is on when it should be off',
+      'Wiring mains voltage. Never do this while learning: use only low-voltage circuits.',
+    ],
+    troubleshooting: [
+      'You should hear a click as it switches.',
+      'Some relay boards switch on LOW instead. The simulator models a HIGH-triggered board.',
+    ],
+    lessons: [],
+  },
 ];
 
 export const FUNCTION_DOCS: Record<string, string> = {
